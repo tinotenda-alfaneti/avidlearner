@@ -3,7 +3,7 @@ pipeline {
 
   environment {
     GITHUB_USER     = "tinotenda-alfaneti"
-    REPO_NAME       = "avidlearner"
+    REPO_NAME       = "${env.JOB_NAME.split('/')[1]}"
     IMAGE_NAME      = "tinorodney/${REPO_NAME}"
     TAG             = "latest"
     APP_NAME        = "${REPO_NAME}"
@@ -76,12 +76,16 @@ pipeline {
 
             echo "🔁 Copying dockerhub-creds from ${SOURCE_NS} to ${NAMESPACE}..."
             SECRET_JSON=$($WORKSPACE/bin/kubectl get secret dockerhub-creds -n ${SOURCE_NS} -o json)
-            echo $SECRET_JSON | jq '.metadata.namespace="${NAMESPACE}" | del(.metadata.uid, .metadata.resourceVersion, .metadata.creationTimestamp, .metadata.annotations)' \
-              | $WORKSPACE/bin/kubectl apply -f -
+
+            echo "$SECRET_JSON" | jq --arg ns "${NAMESPACE}" '
+              .metadata.namespace=$ns
+              | del(.metadata.uid, .metadata.resourceVersion, .metadata.creationTimestamp, .metadata.annotations)
+            ' | $WORKSPACE/bin/kubectl apply -f -
           '''
         }
       }
     }
+
 
     stage('Build Image with Kaniko') {
       steps {
