@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -53,6 +54,12 @@ func main() {
 
 	fs := http.FileServer(http.Dir("../frontend"))
 	http.Handle("/", fs)
+
+	    // Health check endpoint
+    http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+        fmt.Fprint(w, "ok")
+    })
 
 	// Wrap API handlers with CORS middleware. Allowed origin can be set
 	// with the ALLOWED_ORIGIN environment variable (defaults to http://localhost:8081).

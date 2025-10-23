@@ -9,7 +9,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: kaniko
-          image: ghcr.io/kaniko-project/executor:v1.17.0
+          image: gcr.io/kaniko-project/executor:v1.17.0
           args:
             - "--dockerfile=Dockerfile"
             - "--context=__CONTEXT_URL__"            # e.g. https://github.com/<user>/<repo>.git#main

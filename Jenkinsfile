@@ -173,28 +173,13 @@ pipeline {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
           sh '''
             export KUBECONFIG=$WORKSPACE/.kube/config
-            echo "🔎 Verifying deployment ${APP_NAME}..."
-
-            ATTEMPTS=0
-            until $WORKSPACE/bin/kubectl get pods -n ${NAMESPACE} -l app.kubernetes.io/instance=${APP_NAME} -o jsonpath="{.items[0].status.phase}" | grep -qE 'Running|Succeeded'; do
-              ATTEMPTS=$((ATTEMPTS+1))
-              if [ $ATTEMPTS -gt 30 ]; then
-                echo "❌ Pod not ready after timeout."
-                $WORKSPACE/bin/kubectl get pods -n ${NAMESPACE} -l app.kubernetes.io/instance=${APP_NAME}
-                exit 1
-              fi
-              echo "⏳ Waiting for pod... ($ATTEMPTS/30)"
-              sleep 5
-            done
-
-            POD=$($WORKSPACE/bin/kubectl get pods -n ${NAMESPACE} -l app.kubernetes.io/instance=${APP_NAME} -o jsonpath="{.items[0].metadata.name}")
-            echo "✅ Pod ready: $POD"
-            echo "📜 Logs tail:"
-            $WORKSPACE/bin/kubectl logs $POD -n ${NAMESPACE} | tail -n 20
+            echo "🩺 Running Helm test for ${APP_NAME}..."
+            $WORKSPACE/bin/helm test ${APP_NAME} --namespace ${NAMESPACE} --logs --timeout 2m
           '''
         }
       }
     }
+
   }
 
   post {
