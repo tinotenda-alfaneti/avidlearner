@@ -1,25 +1,22 @@
-# --- Stage 1: Builder ---
-FROM --platform=$BUILDPLATFORM golang:1.20-alpine AS builder
-ARG TARGETOS
-ARG TARGETARCH
-
+# Use an official Golang image as the builder
+FROM golang:1.20-alpine AS builder
 WORKDIR /src
 
-# Install git & certificates
+# Install git and certificates
 RUN apk add --no-cache git ca-certificates && update-ca-certificates
 
-# Copy go.mod (and go.sum if it exists)
+# Copy go module files
 COPY go.mod ./
 RUN if [ -f go.sum ]; then go mod download; fi
 
-# Copy source
+# Copy the source code
 COPY . .
 
-# Build architecture-specific binary
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+RUN echo "🏗️ Building ARM64 binary..." && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
     go build -ldflags='-s -w' -o /out/backend ./backend
 
-# --- Stage 2: Final image ---
+# Final lightweight image
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /app
 
