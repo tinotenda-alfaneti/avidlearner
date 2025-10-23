@@ -159,8 +159,10 @@ pipeline {
               --set image.tag=${TAG} \
               --set ingress.enabled=true \
               --set ingress.hosts[0].host=${APP_NAME}.atarnet.org \
+              --set ingress.tls[0].secretName=tls-atarnet \
               --set ingress.tls[0].hosts[0]=${APP_NAME}.atarnet.org \
               --wait --timeout 5m
+
           '''
         }
       }
