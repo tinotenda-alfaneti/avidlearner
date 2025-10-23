@@ -74,14 +74,29 @@ pipeline {
             echo "🧱 Ensuring namespace ${NAMESPACE} exists..."
             $WORKSPACE/bin/kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 
-            echo "🔁 Copying dockerhub-creds from ${SOURCE_NS} to ${NAMESPACE} (no jq)..."
+            echo "🔁 Copying dockerhub-creds from ${SOURCE_NS} to ${NAMESPACE}..."
             $WORKSPACE/bin/kubectl get secret dockerhub-creds -n ${SOURCE_NS} -o yaml \
+              | grep -v 'resourceVersion:' | grep -v 'uid:' | grep -v 'creationTimestamp:' \
               | sed "s/namespace: ${SOURCE_NS}/namespace: ${NAMESPACE}/" \
               | $WORKSPACE/bin/kubectl apply -n ${NAMESPACE} -f -
+
+            echo "🔐 Ensuring kaniko-builder ServiceAccount and RBAC exist in ${NAMESPACE}..."
+            $WORKSPACE/bin/kubectl get sa kaniko-builder -n ${NAMESPACE} >/dev/null 2>&1 \
+              || $WORKSPACE/bin/kubectl create serviceaccount kaniko-builder -n ${NAMESPACE}
+
+            CRB_NAME="kaniko-builder-${NAMESPACE}"
+            if ! $WORKSPACE/bin/kubectl get clusterrolebinding ${CRB_NAME} >/dev/null 2>&1; then
+              $WORKSPACE/bin/kubectl create clusterrolebinding ${CRB_NAME} \
+                --clusterrole=cluster-admin \
+                --serviceaccount=${NAMESPACE}:kaniko-builder
+            fi
+
+            echo "✅ Namespace setup complete for ${NAMESPACE}"
           '''
         }
       }
     }
+
 
 
     stage('Build Image with Kaniko') {
