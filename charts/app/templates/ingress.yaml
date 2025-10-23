@@ -11,26 +11,20 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  ingressClassName: {{ .Values.ingress.className | quote }}
+  ingressClassName: {{ .Values.ingress.className | default "nginx" }}
   rules:
-    - host: {{ (index .Values.ingress.hosts 0).host | default (printf "%s.atarnet.org" .Release.Name) | quote }}
+    - host: {{ .Values.ingress.hosts | default (list (dict "host" (printf "%s.atarnet.org" .Release.Name))) | first | get "host" | quote }}
       http:
         paths:
-          {{- range (index .Values.ingress.hosts 0).paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          - path: /
+            pathType: Prefix
             backend:
               service:
-                name: {{ $.Release.Name }}
+                name: {{ .Release.Name }}
                 port:
-                  number: {{ $.Values.service.port }}
-          {{- end }}
+                  number: {{ .Values.service.port | default 80 }}
   tls:
-    {{- range .Values.ingress.tls }}
-    - secretName: {{ .secretName }}
+    - secretName: {{ (index .Values.ingress.tls 0).secretName | default "tls-atarnet" }}
       hosts:
-        {{- range .hosts }}
-        - {{ . | default (printf "%s.atarnet.org" $.Release.Name) | quote }}
-        {{- end }}
-    {{- end }}
+        - {{ .Values.ingress.hosts | default (list (dict "host" (printf "%s.atarnet.org" .Release.Name))) | first | get "host" | quote }}
 {{- end }}
