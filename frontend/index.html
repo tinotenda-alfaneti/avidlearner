@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Typing Duel — SE Edition</title>
+  <style>
+    :root { --bg:#0b1020; --card:#121a33; --muted:#7d89b0; --text:#e7ecff; --accent:#6ea8fe; --good:#22c55e; --bad:#ef4444; }
+    *{ box-sizing:border-box }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: radial-gradient(1200px 600px at 20% -10%, #1a245a33, transparent), var(--bg); color:var(--text); }
+    header { padding:16px 20px; display:flex; gap:12px; align-items:center; justify-content:space-between; border-bottom:1px solid #ffffff12; }
+    .brand { font-weight:700; letter-spacing:0.2px; }
+    .container { max-width:900px; margin:0 auto; padding:20px; }
+    .card { background:var(--card); border:1px solid #ffffff12; border-radius:16px; padding:16px; box-shadow:0 10px 30px #00000044; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    select, button, input[type=number] { background:#0b122b; color:var(--text); border:1px solid #ffffff22; border-radius:12px; padding:10px 12px; font-size:14px; }
+    button { cursor:pointer; }
+    button.primary { background:linear-gradient(180deg,#1e40af,#1d4ed8); border:none; }
+    button.ghost { background:transparent; }
+
+    .metrics { display:flex; gap:12px; flex-wrap:wrap; }
+    .metric { background:#0b122b; border:1px dashed #ffffff22; padding:10px 12px; border-radius:12px; min-width:110px; text-align:center; }
+    .metric h3{ margin:0; font-size:12px; color:var(--muted); font-weight:500; }
+    .metric p{ margin:4px 0 0; font-size:18px; font-weight:700; }
+
+    .prompt { font-size:18px; line-height:1.6; letter-spacing:0.2px; user-select:none; }
+    .prompt .done { color:#9fb6ff; }
+    .prompt .good { color:var(--good); text-decoration: none; }
+    .prompt .bad  { color:var(--bad); text-decoration: underline wavy var(--bad); }
+
+    .input { width:100%; padding:14px; font-size:18px; border-radius:12px; background:#0b122b; color:var(--text); border:1px solid #ffffff22; margin-top:12px; }
+    .footer { color:var(--muted); font-size:13px; margin-top:10px; }
+
+    .about { margin-top:16px; display:none; }
+    .about h4 { margin:0 0 8px; }
+    .about ul { margin:8px 0; padding-left:20px; }
+
+    @media (max-width:600px){ .prompt{ font-size:16px } .metric{ min-width:90px } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">⚡ Typing Duel — Software Engineering Edition</div>
+    <div style="font-size:12px;color:var(--muted)">Built with Go · Mobile‑friendly</div>
+  </header>
+
+  <div class="container">
+    <div class="card" id="setup">
+      <div class="row">
+        <label>Category
+          <select id="category">
+            <option value="any">Any</option>
+          </select>
+        </label>
+        <label>Duration (s)
+          <input id="duration" type="number" value="60" min="15" max="300" step="15" />
+        </label>
+        <button id="start" class="primary">Start</button>
+        <button id="learn" class="ghost">Learn mode</button>
+      </div>
+      <div class="footer">Tip: Add to your home screen on iOS/Android for a near‑app experience.</div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="metrics">
+        <div class="metric"><h3>Time</h3><p id="time">—</p></div>
+        <div class="metric"><h3>WPM</h3><p id="wpm">0</p></div>
+        <div class="metric"><h3>Accuracy</h3><p id="acc">100%</p></div>
+        <div class="metric"><h3>Streak</h3><p id="streak">0</p></div>
+      </div>
+      <div id="title" style="margin-top:12px; color:var(--muted); font-weight:600"></div>
+      <div id="prompt" class="prompt" style="margin-top:8px">Click Start to begin…</div>
+      <input id="input" class="input" placeholder="Type here…" autocomplete="off" autocapitalize="none" autocorrect="off" />
+      <div class="about" id="about">
+        <h4>About this topic</h4>
+        <div id="explain"></div>
+        <h4>Where to use it</h4>
+        <ul id="usecases"></ul>
+        <h4>Tips</h4>
+        <ul id="tips"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const el = id => document.getElementById(id);
+    const state = {
+      running: false,
+      startTime: 0,
+      deadline: 0,
+      source: '', // current target text
+      title: '',
+      explain: '',
+      useCases: [],
+      tips: [],
+      idx: 0,
+      correct: 0,
+      wrong: 0,
+      streak: 0,
+      bestStreak: 0,
+    };
+
+    async function fetchRandom(cat){
+      const res = await fetch(`/api/random?category=${encodeURIComponent(cat)}`);
+      if(!res.ok){ throw new Error('no lesson') }
+      return res.json();
+    }
+
+    // Fetch lessons metadata on load and populate the category dropdown
+    async function fetchLessons(){
+      try{
+        const res = await fetch('/api/lessons');
+        if(!res.ok) throw new Error('failed to fetch lessons');
+        const data = await res.json();
+        const sel = el('category');
+        // Clear existing options and add 'Any'
+        sel.innerHTML = '';
+        const anyOpt = document.createElement('option'); anyOpt.value='any'; anyOpt.textContent='Any'; sel.appendChild(anyOpt);
+        if(Array.isArray(data.categories)){
+          data.categories.forEach(c => {
+            const o = document.createElement('option');
+            o.value = c; o.textContent = c; sel.appendChild(o);
+          });
+        }
+      }catch(err){
+        console.warn('Could not load lessons:', err);
+        // leave default 'Any' option
+      }
+    }
+
+    function renderPrompt(){
+      const s = state.source;
+      const i = state.idx;
+      let html = '';
+      for(let k=0;k<s.length;k++){
+        const ch = s[k];
+        if(k < i){ html += `<span class="done">${escapeHtml(ch)}</span>`; continue; }
+        html += `<span>${escapeHtml(ch)}</span>`;
+      }
+      el('prompt').innerHTML = html;
+      el('title').textContent = state.title;
+    }
+
+    function escapeHtml(t){
+      return t.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    }
+
+    function highlightCurrent(correct){
+      const prompt = el('prompt');
+      const spans = prompt.querySelectorAll('span');
+      const idx = state.idx;
+      if(idx < spans.length){
+        const s = spans[idx];
+        s.classList.remove('good','bad');
+        if(correct===true) s.classList.add('good');
+        if(correct===false) s.classList.add('bad');
+      }
+    }
+
+    function resetStats(){ state.correct=0; state.wrong=0; state.idx=0; state.streak=0; state.bestStreak=0; updateHUD(); }
+
+    function updateHUD(){
+      const now = performance.now();
+      const elapsedMs = Math.max(0, now - state.startTime);
+      const minutes = elapsedMs/60000;
+      const wpm = minutes>0? Math.round((state.correct/5)/minutes) : 0;
+      const total = state.correct + state.wrong;
+      const acc = total>0? Math.max(0, Math.min(100, Math.round(100*state.correct/total))) : 100;
+      const remain = Math.max(0, Math.ceil((state.deadline - now)/1000));
+      el('wpm').textContent = wpm;
+      el('acc').textContent = acc + '%';
+      el('time').textContent = state.running? remain+'s' : '—';
+      el('streak').textContent = state.streak;
+    }
+
+    function tick(){
+      if(!state.running) return;
+      updateHUD();
+      if(performance.now() >= state.deadline){ endRound(); return; }
+      requestAnimationFrame(tick);
+    }
+
+    function endRound(){
+      state.running = false;
+      updateHUD();
+      el('input').disabled = true;
+      el('about').style.display = 'block';
+      el('explain').textContent = state.explain;
+      el('usecases').innerHTML = state.useCases.map(x=>`<li>${escapeHtml(x)}</li>`).join('');
+      el('tips').innerHTML = state.tips.map(x=>`<li>${escapeHtml(x)}</li>`).join('');
+    }
+
+    async function startRound(){
+      const cat = el('category').value;
+      const dur = Math.max(5, parseInt(el('duration').value||'60',10));
+      const lesson = await fetchRandom(cat);
+      state.source = lesson.text;
+      state.title = `${lesson.category} · ${lesson.title}`;
+      state.explain = lesson.explain; state.useCases = lesson.useCases||[]; state.tips = lesson.tips||[];
+      resetStats();
+      renderPrompt();
+      el('about').style.display = 'none';
+      el('input').value='';
+      el('input').disabled=false; el('input').focus();
+      state.running=true;
+      const now = performance.now();
+      state.startTime = now; state.deadline = now + dur*1000;
+      tick();
+    }
+
+    function onKey(e){
+      if(!state.running) return;
+      const val = e.target.value;
+      const expected = state.source[state.idx] || '';
+      const last = val[val.length-1];
+      if(last === undefined) { return; }
+      if(last === expected){
+        state.idx++; state.correct++; state.streak++; state.bestStreak = Math.max(state.bestStreak, state.streak);
+        highlightCurrent(true);
+        if(state.idx >= state.source.length){ endRound(); }
+      } else {
+        state.wrong++; state.streak = 0; highlightCurrent(false);
+      }
+      updateHUD();
+    }
+
+  el('start').addEventListener('click', ()=> startRound().catch(err=>alert(err.message)) );
+    el('learn').addEventListener('click', async ()=>{
+      // Learn mode: fetch a random lesson and just show About without timer
+      const cat = el('category').value;
+      const lesson = await fetchRandom(cat);
+      state.source = lesson.text; state.title = `${lesson.category} · ${lesson.title}`;
+      state.explain = lesson.explain; state.useCases = lesson.useCases||[]; state.tips = lesson.tips||[];
+      state.running = false; resetStats(); renderPrompt(); updateHUD();
+      el('about').style.display = 'block';
+      el('input').value=''; el('input').disabled = true;
+    });
+
+    el('input').addEventListener('input', onKey);
+
+    // Initialize the page
+    (function init(){
+      fetchLessons();
+    })();
+  </script>
+</body>
+</html>

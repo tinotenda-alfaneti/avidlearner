@@ -1,0 +1,33 @@
+replicaCount: 1
+
+image:
+  repository: ""   # e.g. tinorodney/avidlearner
+  tag: ""          # e.g. latest or a SHA
+  pullPolicy: IfNotPresent
+
+podAnnotations: {}
+
+resources: {}
+  # limits:
+  #   cpu: 400m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  # host and TLS host are computed from .Release.Name => <app>.atarnet.org
+  tls:
+    secretName: tls-atarnet
+
+# Common labels override (optional)
+labels: {}

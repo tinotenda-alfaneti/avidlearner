@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kaniko-job
+spec:
+  template:
+    spec:
+      serviceAccountName: kaniko-builder
+      restartPolicy: Never
+      containers:
+        - name: kaniko
+          image: gcr.io/kaniko-project/executor:latest
+          args:
+            - "--dockerfile=Dockerfile"
+            - "--context=__CONTEXT_URL__"            # e.g. git://github.com/<user>/<repo>.git
+            - "--destination=__IMAGE_DEST__"         # e.g. tinorodney/<repo>:<tag>
+            - "--verbosity=info"
+            - "--cleanup"
+          volumeMounts:
+            - name: docker-config
+              mountPath: /kaniko/.docker/
+      volumes:
+        - name: docker-config
+          projected:
+            sources:
+              - secret:
+                  name: dockerhub-creds
+                  items:
+                    - key: .dockerconfigjson
+                      path: config.json

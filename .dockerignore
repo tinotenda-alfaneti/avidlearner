@@ -1,0 +1,13 @@
+# Ignore local build artifacts and editor files
+backend.exe
+*.exe~
+*.log
+.vscode
+.git
+bin/
+obj/
+__pycache__/
+*.tmp
+node_modules
+frontend/node_modules
+data/*.db
