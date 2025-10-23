@@ -52,10 +52,14 @@ func main() {
 	}
 	sort.Strings(categories)
 
-	fs := http.FileServer(http.Dir("../frontend"))
+	frontendPath := "../frontend"
+	if _, err := os.Stat(frontendPath); os.IsNotExist(err) {
+		frontendPath = "/app/frontend"
+	}
+	fs := http.FileServer(http.Dir(frontendPath))
 	http.Handle("/", fs)
 
-	    // Health check endpoint
+	// Health check endpoint
     http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusOK)
         fmt.Fprint(w, "ok")
