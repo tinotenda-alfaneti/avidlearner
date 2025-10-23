@@ -3,7 +3,7 @@ pipeline {
 
   environment {
     GITHUB_USER     = "tinotenda-alfaneti"
-    REPO_NAME       = "${env.JOB_NAME.split('/')[0]}" // auto-detects repo from job name
+    REPO_NAME       = "avidlearner"
     IMAGE_NAME      = "tinorodney/${REPO_NAME}"
     TAG             = "latest"
     APP_NAME        = "${REPO_NAME}"
