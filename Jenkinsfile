@@ -5,7 +5,7 @@ pipeline {
     GITHUB_USER     = "tinotenda-alfaneti"
     REPO_NAME       = "${env.JOB_NAME.split('/')[1]}"
     IMAGE_NAME      = "tinorodney/${REPO_NAME}"
-    TAG             = "latest"
+    TAG             = "v1.0.0"
     APP_NAME        = "${REPO_NAME}"
     NAMESPACE       = "${REPO_NAME}-ns"
     SOURCE_NS       = "test-ns"

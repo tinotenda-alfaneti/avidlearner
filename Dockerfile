@@ -1,30 +1,27 @@
-# Use an official Golang image as the builder
-FROM golang:1.20-alpine AS builder
-WORKDIR /src
 
-# Install git and certificates
-RUN apk add --no-cache git ca-certificates && update-ca-certificates
-
-# Copy go module files
-COPY go.mod ./
-RUN if [ -f go.sum ]; then go mod download; fi
-
-# Copy the source code
-COPY . .
-
-RUN echo "🏗️ Building ARM64 binary..." && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
-    go build -ldflags='-s -w' -o /out/backend ./backend
-
-# Final lightweight image
-FROM gcr.io/distroless/static:nonroot
+# ---------- Frontend build ----------
+FROM node:18-alpine AS frontend
 WORKDIR /app
+COPY frontend/package.json frontend/vite.config.js ./
+RUN npm ci || npm i
+COPY frontend ./
+RUN npm run build
 
-COPY --from=builder /out/backend /app/backend
-COPY --from=builder /src/frontend /app/frontend
-COPY --from=builder /src/data /data
+# ---------- Backend build ----------
+FROM golang:1.24-alpine AS backend
+WORKDIR /src
+COPY backend/go.mod ./
+RUN go mod download
+COPY backend ./backend
+WORKDIR /src/backend
+RUN go build -o /out/server
 
-ENV PORT=8081
+# ---------- Final minimal image ----------
+FROM alpine:3.20
+WORKDIR /app
+COPY --from=backend /out/server /app/server
+COPY --from=frontend /app/dist /app/frontend/dist
+COPY data /app/data
+ENV PORT=8081 LESSONS_FILE=/app/data/lessons.json
 EXPOSE 8081
-
-ENTRYPOINT ["/app/backend"]
+CMD ["/app/server"]

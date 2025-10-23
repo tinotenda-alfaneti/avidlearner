@@ -1,17 +1,22 @@
 package main
 
 import (
+	crand "crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
+	mrand "math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
-// Lesson model
+// ---------- Models ----------
+
 type Lesson struct {
 	Title    string   `json:"title"`
 	Category string   `json:"category"`
@@ -26,22 +31,62 @@ type LessonsResponse struct {
 	Lessons    map[string][]Lesson `json:"lessons"`
 }
 
-// seedLessons: moved to data/lessons.json
+type SessionState struct {
+	Stage       string   `json:"stage"`
+	// lesson/reading
+	Lesson      *Lesson  `json:"lesson,omitempty"`
+	// quiz
+	Question    string   `json:"question,omitempty"`
+	Options     []string `json:"options,omitempty"`
+	Index       int      `json:"index,omitempty"`
+	Total       int      `json:"total,omitempty"`
+	// result/answer
+	Correct     bool     `json:"correct,omitempty"`
+	CoinsEarned int      `json:"coinsEarned,omitempty"`
+	CoinsTotal  int      `json:"coinsTotal,omitempty"`
+	More        bool     `json:"more,omitempty"`
+	Message     string   `json:"message,omitempty"`
+}
 
-var lessonsByCat map[string][]Lesson
-var categories []string
+// One generated MCQ
+type QuizQuestion struct {
+	LessonTitle  string
+	Question     string
+	Options      []string
+	CorrectIndex int
+}
+
+// Per-session state
+type profile struct {
+	Coins      int
+	Streak     int
+	LessonsSeen []string
+
+	CurrentQuiz []QuizQuestion
+	QuizIndex   int
+	LastLesson  *Lesson
+}
+
+// ---------- Globals ----------
+var (
+	lessonsByCat map[string][]Lesson
+	categories   []string
+	sessions     = map[string]*profile{} // sid -> profile
+)
+
+// ---------- Main ----------
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	mrand.Seed(time.Now().UnixNano())
 
-	// Load lessons from JSON file
-	lessonsFile := os.Getenv("LESSONS_FILE")
-	if lessonsFile == "" {
-		lessonsFile = "../data/lessons.json"
+	// Load lessons
+	dataPath := os.Getenv("LESSONS_FILE")
+	if dataPath == "" {
+		dataPath = filepath.Join("..","data", "lessons.json")
 	}
-	loaded, err := loadLessons(lessonsFile)
+	loaded, err := loadLessons(dataPath)
 	if err != nil {
-		log.Fatalf("failed to load lessons from %s: %v", lessonsFile, err)
+		log.Fatalf("failed to load lessons from %s: %v", dataPath, err)
 	}
 	lessonsByCat = map[string][]Lesson{}
 	for _, l := range loaded {
@@ -52,57 +97,49 @@ func main() {
 	}
 	sort.Strings(categories)
 
-	frontendPath := "../frontend"
-	if _, err := os.Stat(frontendPath); os.IsNotExist(err) {
-		frontendPath = "/app/frontend"
+	// Static frontend (vite build output)
+	frontendDist := filepath.Join("frontend", "dist")
+	if _, err := os.Stat(frontendDist); os.IsNotExist(err) {
+		frontendDist = "/app/frontend/dist"
 	}
-	fs := http.FileServer(http.Dir(frontendPath))
-	http.Handle("/", fs)
+	http.Handle("/", withSession(http.FileServer(http.Dir(frontendDist))))
 
-	// Health check endpoint
-    http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-        w.WriteHeader(http.StatusOK)
-        fmt.Fprint(w, "ok")
-    })
+	// Health
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, "ok")
+	})
 
-	// Wrap API handlers with CORS middleware. Allowed origin can be set
-	// with the ALLOWED_ORIGIN environment variable (defaults to http://localhost:8081).
-	http.HandleFunc("/api/lessons", corsMiddleware(handleLessons))
-	http.HandleFunc("/api/random", corsMiddleware(handleRandom))
+	// API
+	http.HandleFunc("/api/lessons", cors(handleLessons))
+	http.HandleFunc("/api/random", cors(handleRandom))
+	http.HandleFunc("/api/session", cors(handleSession)) // multi-stage + POSTs
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8081"
 	}
-	log.Printf("Backend running on http://localhost:%s …\n", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatal(err)
-	}
+	log.Printf("Server listening on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
+// ---------- Helpers ----------
+
 func loadLessons(path string) ([]Lesson, error) {
-	f, err := os.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var lessons []Lesson
-	if err := json.Unmarshal(f, &lessons); err != nil {
+	var L []Lesson
+	if err := json.Unmarshal(b, &L); err != nil {
 		return nil, err
 	}
-	return lessons, nil
+	return L, nil
 }
 
-func handleLessons(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	resp := LessonsResponse{Categories: categories, Lessons: lessonsByCat}
-	_ = json.NewEncoder(w).Encode(resp)
-}
-
-func handleRandom(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	cat := r.URL.Query().Get("category")
+func pickRandomLesson(cat string) *Lesson {
 	var pool []Lesson
-	if cat == "" || cat == "any" {
+	if cat == "" || strings.EqualFold(cat, "any") {
 		for _, ls := range lessonsByCat {
 			pool = append(pool, ls...)
 		}
@@ -110,43 +147,319 @@ func handleRandom(w http.ResponseWriter, r *http.Request) {
 		pool = lessonsByCat[cat]
 	}
 	if len(pool) == 0 {
+		return nil
+	}
+	l := pool[mrand.Intn(len(pool))]
+	return &l
+}
+
+func allLessons() []Lesson {
+	var pool []Lesson
+	for _, ls := range lessonsByCat {
+		pool = append(pool, ls...)
+	}
+	return pool
+}
+
+func findLessonByTitle(title string) *Lesson {
+	for _, ls := range lessonsByCat {
+		for _, l := range ls {
+			if l.Title == title {
+				ll := l
+				return &ll
+			}
+		}
+	}
+	return nil
+}
+
+func uniqueStrings(ss []string) []string {
+	seen := map[string]struct{}{}
+	var out []string
+	for _, s := range ss {
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+	}
+	return out
+}
+
+// ---------- Middleware ----------
+
+func withSession(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("sid")
+		if err != nil || c.Value == "" {
+			buf := make([]byte, 16)
+			_, _ = crand.Read(buf)
+			sid := hex.EncodeToString(buf)
+			http.SetCookie(w, &http.Cookie{
+				Name:     "sid",
+				Value:    sid,
+				Path:     "/",
+				HttpOnly: true,
+				MaxAge:   60 * 60 * 24 * 30,
+				SameSite: http.SameSiteLaxMode,
+			})
+			sessions[sid] = &profile{}
+			r.AddCookie(&http.Cookie{Name: "sid", Value: sid})
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func getProfile(r *http.Request) *profile {
+	c, err := r.Cookie("sid")
+	if err != nil {
+		return &profile{}
+	}
+	p, ok := sessions[c.Value]
+	if !ok {
+		p = &profile{}
+		sessions[c.Value] = p
+	}
+	return p
+}
+
+// ---------- Handlers ----------
+
+func handleLessons(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(LessonsResponse{
+		Categories: categories,
+		Lessons:    lessonsByCat,
+	})
+}
+
+func handleRandom(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	cat := r.URL.Query().Get("category")
+	lesson := pickRandomLesson(cat)
+	if lesson == nil {
 		w.WriteHeader(http.StatusNotFound)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "no lessons for category"})
 		return
 	}
-	l := pool[rand.Intn(len(pool))]
-	_ = json.NewEncoder(w).Encode(l)
+	_ = json.NewEncoder(w).Encode(lesson)
 }
 
-// corsMiddleware wraps an http.HandlerFunc and sets CORS headers.
-// Allowed origin can be specified with ALLOWED_ORIGIN env var. If empty,
-// the middleware will allow the request origin or default to http://localhost:8081.
-func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+// /api/session supports:
+// GET  stage=lesson           -> returns a random lesson for reading
+// POST stage=add              -> body: {"title":"..."} adds lesson to LessonsSeen
+// POST stage=startQuiz        -> builds quiz from LessonsSeen (or all if empty) and returns first question
+// GET  stage=quiz             -> returns current question (index/total)
+// POST stage=answer           -> body: {"answerIndex":0..3} evals; returns result + maybe next question (More=true)
+func handleSession(w http.ResponseWriter, r *http.Request) {
+	p := getProfile(r)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	stage := r.URL.Query().Get("stage")
+	if stage == "" {
+		stage = "lesson"
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		switch stage {
+		case "lesson":
+			lesson := pickRandomLesson(r.URL.Query().Get("category"))
+			if lesson == nil {
+				http.Error(w, "no lessons", http.StatusInternalServerError)
+				return
+			}
+			p.LastLesson = lesson
+			_ = json.NewEncoder(w).Encode(SessionState{
+				Stage:  "lesson",
+				Lesson: lesson,
+			})
+			return
+
+		case "quiz":
+			if len(p.CurrentQuiz) == 0 {
+				http.Error(w, "no active quiz", http.StatusBadRequest)
+				return
+			}
+			q := p.CurrentQuiz[p.QuizIndex]
+			_ = json.NewEncoder(w).Encode(SessionState{
+				Stage:    "quiz",
+				Question: q.Question,
+				Options:  q.Options,
+				Index:    p.QuizIndex + 1,
+				Total:    len(p.CurrentQuiz),
+			})
+			return
+		}
+
+	case http.MethodPost:
+		switch stage {
+		case "add":
+			var body struct{ Title string `json:"title"` }
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, "bad body", http.StatusBadRequest)
+				return
+			}
+			if body.Title != "" {
+				p.LessonsSeen = uniqueStrings(append(p.LessonsSeen, body.Title))
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"stage":        "added",
+				"lessonsSeen":  p.LessonsSeen,
+				"count":        len(p.LessonsSeen),
+				"message":      "lesson added to study list",
+			})
+			return
+
+		case "startQuiz":
+			var pool []Lesson
+			if len(p.LessonsSeen) == 0 {
+				pool = allLessons()
+			} else {
+				for _, t := range p.LessonsSeen {
+					if l := findLessonByTitle(t); l != nil {
+						pool = append(pool, *l)
+					}
+				}
+			}
+			if len(pool) == 0 {
+				http.Error(w, "no lessons to quiz", http.StatusBadRequest)
+				return
+			}
+			// build quiz
+			p.CurrentQuiz = nil
+			for _, l := range pool {
+				qq := buildQuizForLesson(l)
+				p.CurrentQuiz = append(p.CurrentQuiz, qq)
+			}
+			// shuffle questions
+			mrand.Shuffle(len(p.CurrentQuiz), func(i, j int) { p.CurrentQuiz[i], p.CurrentQuiz[j] = p.CurrentQuiz[j], p.CurrentQuiz[i] })
+			p.QuizIndex = 0
+			first := p.CurrentQuiz[0]
+			_ = json.NewEncoder(w).Encode(SessionState{
+				Stage:    "quiz",
+				Question: first.Question,
+				Options:  first.Options,
+				Index:    1,
+				Total:    len(p.CurrentQuiz),
+				Message:  "quiz started",
+			})
+			return
+
+		case "answer":
+			if len(p.CurrentQuiz) == 0 {
+				http.Error(w, "no active quiz", http.StatusBadRequest)
+				return
+			}
+			var body struct{ AnswerIndex int `json:"answerIndex"` }
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, "bad body", http.StatusBadRequest)
+				return
+			}
+			cur := p.CurrentQuiz[p.QuizIndex]
+			correct := body.AnswerIndex == cur.CorrectIndex
+			earned := 0
+			if correct {
+				earned = 10
+				p.Coins += earned
+				p.Streak += 1
+			} else {
+				p.Streak = 0
+			}
+			// advance
+			p.QuizIndex++
+			more := p.QuizIndex < len(p.CurrentQuiz)
+
+			resp := SessionState{
+				Stage:       "result",
+				Correct:     correct,
+				CoinsEarned: earned,
+				CoinsTotal:  p.Coins,
+				More:        more,
+				Message:     map[bool]string{true: "Correct! +10 coins", false: "Not quite. Keep going!"}[correct],
+			}
+			// include next question if more
+			if more {
+				next := p.CurrentQuiz[p.QuizIndex]
+				resp.Stage = "quiz"
+				resp.Question = next.Question
+				resp.Options = next.Options
+				resp.Index = p.QuizIndex + 1
+				resp.Total = len(p.CurrentQuiz)
+			} else {
+				// end of quiz; clear selection list but keep progress coins/streak
+				p.CurrentQuiz = nil
+				p.LessonsSeen = nil
+				p.QuizIndex = 0
+			}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+	}
+
+	http.Error(w, "invalid request", http.StatusBadRequest)
+}
+
+// Build one MCQ for a lesson (correct = lesson explain/text; distractors from others)
+func buildQuizForLesson(l Lesson) QuizQuestion {
+	question := fmt.Sprintf("Which statement best matches the concept '%s'?", l.Title)
+	correct := strings.TrimSpace(l.Explain)
+	if correct == "" {
+		correct = strings.TrimSpace(l.Text)
+	}
+	var pool []string
+	for _, ls := range lessonsByCat {
+		for _, x := range ls {
+			if x.Title == l.Title {
+				continue
+			}
+			cur := strings.TrimSpace(x.Explain)
+			if cur == "" {
+				cur = strings.TrimSpace(x.Text)
+			}
+			if cur != "" {
+				pool = append(pool, cur)
+			}
+		}
+	}
+	mrand.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })
+	opts := []string{correct}
+	for i := 0; i < 3 && i < len(pool); i++ { opts = append(opts, pool[i]) }
+	for len(opts) < 4 { opts = append(opts, "This option does not apply to the concept.") }
+	mrand.Shuffle(len(opts), func(i, j int) { opts[i], opts[j] = opts[j], opts[i] })
+	correctIdx := 0
+	for i, o := range opts {
+		if o == correct { correctIdx = i; break }
+	}
+	return QuizQuestion{
+		LessonTitle:  l.Title,
+		Question:     question,
+		Options:      opts,
+		CorrectIndex: correctIdx,
+	}
+}
+
+// Liberal CORS so frontend dev server can call POST endpoints
+func cors(next http.HandlerFunc) http.HandlerFunc {
 	allowed := os.Getenv("ALLOWED_ORIGIN")
 	if allowed == "" {
-		allowed = "http://localhost:80"
+		allowed = "*" // dev-friendly
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		if origin != "" {
-			// If ALLOWED_ORIGIN is a wildcard, allow all. Otherwise allow only matching origin.
-			if allowed == "*" || origin == allowed {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				w.Header().Set("Vary", "Origin")
-			}
-		} else {
-			// If request has no Origin header (e.g., same-origin), still set default
-			if allowed != "" {
-				w.Header().Set("Access-Control-Allow-Origin", allowed)
-			}
+		if allowed == "*" && origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else if origin == allowed {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else if allowed != "*" {
+			w.Header().Set("Access-Control-Allow-Origin", allowed)
 		}
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Vary", "Origin")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		next(w, r)
+		withSession(next).ServeHTTP(w, r)
 	}
 }

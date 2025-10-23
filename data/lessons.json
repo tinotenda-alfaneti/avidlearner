@@ -2,161 +2,337 @@
   {
     "title": "Circuit Breaker",
     "category": "system-design",
-    "text": "Circuit breaker stops cascading failures by short‑circuiting unstable downstream calls and letting the system degrade gracefully.",
-    "explain": "A circuit breaker wraps a remote call. If recent failures exceed a threshold, it opens (blocks) the call for a cool‑down period. This prevents retry storms and preserves resources.",
-    "useCases": ["Calling flaky downstream services", "Protecting thread pools under load", "Mobile apps with unreliable networks"],
-    "tips": ["Track half‑open state to probe recovery", "Expose metrics: open/closed counts", "Backoff + jitter retries"]
+    "text": "Circuit breaker stops cascading failures by short\u2011circuiting unstable downstream calls and letting the system degrade gracefully.",
+    "explain": "A circuit breaker wraps a remote call. If recent failures exceed a threshold, it opens (blocks) the call for a cool\u2011down period. This prevents retry storms and preserves resources.",
+    "useCases": [
+      "Calling flaky downstream services",
+      "Protecting thread pools under load",
+      "Mobile apps with unreliable networks"
+    ],
+    "tips": [
+      "Track half\u2011open state to probe recovery",
+      "Expose metrics: open/closed counts",
+      "Backoff + jitter retries"
+    ]
   },
   {
     "title": "Idempotency Keys",
     "category": "system-design",
     "text": "Idempotency keys ensure repeating the same request (like a payment) yields the same result exactly once.",
     "explain": "Clients generate a unique key per logical operation. Servers store the first result and return it for retries with the same key.",
-    "useCases": ["Payment APIs", "Webhook receivers", "Network‑fragile flows with retries"],
-    "tips": ["Set sensible key TTLs", "Key on business intent, not transport", "Return previous response with 200/201"]
+    "useCases": [
+      "Payment APIs",
+      "Webhook receivers",
+      "Network\u2011fragile flows with retries"
+    ],
+    "tips": [
+      "Set sensible key TTLs",
+      "Key on business intent, not transport",
+      "Return previous response with 200/201"
+    ]
   },
   {
     "title": "Backpressure",
     "category": "system-design",
-    "text": "Backpressure signals producers to slow down when consumers can’t keep up, avoiding queue blow‑ups and timeouts.",
+    "text": "Backpressure signals producers to slow down when consumers can\u2019t keep up, avoiding queue blow\u2011ups and timeouts.",
     "explain": "Use bounded queues and propagate capacity upstream. Prefer shedding load early over timing out late.",
-    "useCases": ["Message brokers", "Streaming pipelines", "HTTP servers under bursty load"],
-    "tips": ["Keep queues bounded", "Use drop/timeout policies", "Expose current queue depth"]
+    "useCases": [
+      "Message brokers",
+      "Streaming pipelines",
+      "HTTP servers under bursty load"
+    ],
+    "tips": [
+      "Keep queues bounded",
+      "Use drop/timeout policies",
+      "Expose current queue depth"
+    ]
   },
   {
     "title": "CQRS",
     "category": "architecture",
     "text": "CQRS splits reads from writes so each side can be optimized independently for scale and latency.",
     "explain": "Commands change state; queries read from projections/materialized views. Eventual consistency is common.",
-    "useCases": ["High‑read apps", "Auditability via event sourcing", "Complex domain models"],
-    "tips": ["Design clear command boundaries", "Keep read models disposable", "Document consistency expectations"]
+    "useCases": [
+      "High\u2011read apps",
+      "Auditability via event sourcing",
+      "Complex domain models"
+    ],
+    "tips": [
+      "Design clear command boundaries",
+      "Keep read models disposable",
+      "Document consistency expectations"
+    ]
   },
   {
     "title": "Event Sourcing",
     "category": "architecture",
     "text": "Event sourcing stores the sequence of domain events; state is a fold of events.",
-    "explain": "Instead of overwriting rows, append events. You can rebuild state and time‑travel for debugging and audits.",
-    "useCases": ["Financial ledgers", "Orders & workflows", "Audit trails"],
-    "tips": ["Version events", "Store idempotent handlers", "Snapshot long streams"]
+    "explain": "Instead of overwriting rows, append events. You can rebuild state and time\u2011travel for debugging and audits.",
+    "useCases": [
+      "Financial ledgers",
+      "Orders & workflows",
+      "Audit trails"
+    ],
+    "tips": [
+      "Version events",
+      "Store idempotent handlers",
+      "Snapshot long streams"
+    ]
   },
   {
     "title": "Hexagonal Architecture",
     "category": "architecture",
     "text": "Hexagonal (ports & adapters) isolates domain logic from I/O so frameworks become plugins, not foundations.",
     "explain": "Define domain ports; implement adapters for HTTP, DB, queues. Tests target the core.",
-    "useCases": ["Long‑lived services", "Multiple UIs or transports", "Testable core logic"],
-    "tips": ["Keep domain pure", "Start adapters thin", "Map DTOs at the edges"]
+    "useCases": [
+      "Long\u2011lived services",
+      "Multiple UIs or transports",
+      "Testable core logic"
+    ],
+    "tips": [
+      "Keep domain pure",
+      "Start adapters thin",
+      "Map DTOs at the edges"
+    ]
   },
   {
     "title": "Clean Code: Naming",
     "category": "clean-code",
     "text": "Good names reveal intent: choose nouns for things, verbs for actions, and avoid noise words.",
     "explain": "Names are the first documentation. Consistency beats cleverness.",
-    "useCases": ["APIs, functions, modules"],
-    "tips": ["Prefer clarity over brevity", "Use ubiquitous language", "Avoid booleans like done/ok"]
+    "useCases": [
+      "APIs, functions, modules"
+    ],
+    "tips": [
+      "Prefer clarity over brevity",
+      "Use ubiquitous language",
+      "Avoid booleans like done/ok"
+    ]
   },
   {
     "title": "Clean Code: Functions",
     "category": "clean-code",
     "text": "Small functions with single responsibility are easier to test, reuse, and reason about.",
-    "explain": "Limit parameters, avoid side‑effects, and keep a single level of abstraction per function.",
-    "useCases": ["Refactoring hotspots", "Utility libraries"],
-    "tips": ["Return early", "Extract pure helpers", "Name side‑effects explicitly"]
+    "explain": "Limit parameters, avoid side\u2011effects, and keep a single level of abstraction per function.",
+    "useCases": [
+      "Refactoring hotspots",
+      "Utility libraries"
+    ],
+    "tips": [
+      "Return early",
+      "Extract pure helpers",
+      "Name side\u2011effects explicitly"
+    ]
   },
   {
     "title": "Clean Code: Errors",
     "category": "clean-code",
     "text": "Handle errors where you can act. Fail fast with context; log once near the boundary.",
     "explain": "Duplicate logging and swallowing errors hide incidents. Propagate context; decide recover vs. crash.",
-    "useCases": ["Service boundaries", "CLI tools"],
-    "tips": ["Wrap errors with cause", "Avoid panic in libraries", "Test failure paths"]
+    "useCases": [
+      "Service boundaries",
+      "CLI tools"
+    ],
+    "tips": [
+      "Wrap errors with cause",
+      "Avoid panic in libraries",
+      "Test failure paths"
+    ]
   },
   {
     "title": "Caching",
     "category": "performance",
     "text": "Caching trades memory for speed; choose keys, TTLs, and invalidation carefully to avoid serving stale data.",
     "explain": "Hot paths benefit most. Measure hit ratio and tail latency.",
-    "useCases": ["API responses", "DB query results", "Static assets"],
-    "tips": ["Prefer cache‑aside for simplicity", "Use versioned keys", "Warm-up on deploy"]
+    "useCases": [
+      "API responses",
+      "DB query results",
+      "Static assets"
+    ],
+    "tips": [
+      "Prefer cache\u2011aside for simplicity",
+      "Use versioned keys",
+      "Warm-up on deploy"
+    ]
   },
   {
     "title": "Pagination: Keyset",
     "category": "databases",
     "text": "Keyset pagination uses a stable cursor (last seen id) to fetch next pages with O(1) performance even on large tables.",
     "explain": "Prefer WHERE id > last_id ORDER BY id. Avoid OFFSET for deep pages.",
-    "useCases": ["Activity feeds", "Scrolling lists"],
-    "tips": ["Require deterministic order", "Expose opaque cursors", "Handle deletions"]
+    "useCases": [
+      "Activity feeds",
+      "Scrolling lists"
+    ],
+    "tips": [
+      "Require deterministic order",
+      "Expose opaque cursors",
+      "Handle deletions"
+    ]
   },
   {
     "title": "Database Transactions",
     "category": "databases",
     "text": "Use transactions to group operations atomically; choose isolation levels based on anomalies you can tolerate.",
     "explain": "READ COMMITTED is a sane default; SERIALIZABLE costs more but avoids write skew.",
-    "useCases": ["Financial transfers", "Inventory updates"],
-    "tips": ["Keep transactions short", "Index predicates", "Beware long‑running locks"]
+    "useCases": [
+      "Financial transfers",
+      "Inventory updates"
+    ],
+    "tips": [
+      "Keep transactions short",
+      "Index predicates",
+      "Beware long\u2011running locks"
+    ]
   },
   {
     "title": "Retry with Jitter",
     "category": "reliability",
     "text": "Exponential backoff with jitter reduces thundering herds compared to synchronized retries.",
     "explain": "Randomize sleep intervals; cap the backoff. Combine with deadlines.",
-    "useCases": ["HTTP clients", "Queue consumers"],
-    "tips": ["Retry only idempotent ops", "Respect Retry‑After", "Add circuit breakers"]
+    "useCases": [
+      "HTTP clients",
+      "Queue consumers"
+    ],
+    "tips": [
+      "Retry only idempotent ops",
+      "Respect Retry\u2011After",
+      "Add circuit breakers"
+    ]
   },
   {
     "title": "Rate Limiting",
     "category": "reliability",
     "text": "Token bucket rate limiting smooths bursts while allowing short spikes within capacity.",
     "explain": "Tokens accumulate at a rate; requests consume tokens. Empty bucket => throttle or reject.",
-    "useCases": ["APIs", "Login endpoints"],
-    "tips": ["Choose fair units (req/user)", "Return headers with limits", "Separate global vs per‑key"]
+    "useCases": [
+      "APIs",
+      "Login endpoints"
+    ],
+    "tips": [
+      "Choose fair units (req/user)",
+      "Return headers with limits",
+      "Separate global vs per\u2011key"
+    ]
   },
   {
-    "title": "CAP vs PACELC",
+    "title": "PACELC (vs CAP)",
     "category": "theory",
     "text": "PACELC: if Partition (P) then trade Availability (A) vs Consistency (C); Else, trade Latency (L) vs Consistency (C).",
-    "explain": "CAP is only for partitions; PACELC generalizes to the no‑partition case.",
-    "useCases": ["DB selection", "Multi‑region design"],
-    "tips": ["Decide per operation", "Document guarantees", "Test partition behavior"]
+    "explain": "CAP focuses on partitions; PACELC adds the no\u2011partition trade\u2011off of latency vs consistency.",
+    "useCases": [
+      "DB selection",
+      "Multi\u2011region design"
+    ],
+    "tips": [
+      "Decide per operation",
+      "Document guarantees",
+      "Test partition behavior"
+    ]
   },
   {
-    "title": "GRPC vs REST",
+    "title": "gRPC vs REST",
     "category": "apis",
-    "text": "gRPC offers binary proto, strict contracts, and streaming; REST is human‑friendly and cacheable over HTTP/1.1.",
+    "text": "gRPC offers binary proto, strict contracts, and streaming; REST is human\u2011friendly and cacheable over HTTP/1.1.",
     "explain": "Pick transport to match clients and performance needs.",
-    "useCases": ["Service‑to‑service (gRPC)", "Public APIs (REST)"],
-    "tips": ["Version your APIs", "Define SLAs per method", "Use deadline/timeout"]
+    "useCases": [
+      "Service\u2011to\u2011service (gRPC)",
+      "Public APIs (REST)"
+    ],
+    "tips": [
+      "Version your APIs",
+      "Define SLAs per method",
+      "Use deadline/timeout"
+    ]
   },
   {
-    "title": "Zero‑Downtime Deploys",
+    "title": "Zero\u2011Downtime Deploys",
     "category": "devops",
-    "text": "Blue‑green or rolling deploys shift traffic gradually to new versions to avoid downtime.",
+    "text": "Blue\u2011green or rolling deploys shift traffic gradually to new versions to avoid downtime.",
     "explain": "Keep schemas backward compatible during rollout; add feature flags for quick rollback.",
-    "useCases": ["Web services", "Mobile backends"],
-    "tips": ["Health checks & readiness", "Automate rollback", "Smoke tests on new pool"]
+    "useCases": [
+      "Web services",
+      "Mobile backends"
+    ],
+    "tips": [
+      "Health checks & readiness",
+      "Automate rollback",
+      "Smoke tests on new pool"
+    ]
   },
   {
     "title": "Observability: SLOs",
     "category": "observability",
     "text": "Define SLOs with error budgets; alert on burn rate instead of every blip.",
-    "explain": "Pick user‑centric metrics (latency, availability). Burn‑rate alerts reduce noise and catch incidents early.",
-    "useCases": ["On‑call", "Platform teams"],
-    "tips": ["Choose few golden signals", "Trace high‑latency paths", "Sample smartly"]
+    "explain": "Pick user\u2011centric metrics (latency, availability). Burn\u2011rate alerts reduce noise and catch incidents early.",
+    "useCases": [
+      "On\u2011call",
+      "Platform teams"
+    ],
+    "tips": [
+      "Choose few golden signals",
+      "Trace high\u2011latency paths",
+      "Sample smartly"
+    ]
   },
   {
     "title": "Go Concurrency: Context",
     "category": "golang",
     "text": "context.Context carries deadlines and cancellation; pass it through call chains to stop work promptly.",
     "explain": "Always select on ctx.Done(). Avoid storing context in structs.",
-    "useCases": ["HTTP handlers", "Background workers"],
-    "tips": ["Use WithTimeout on external calls", "Respect cancellation", "Avoid leaking goroutines"]
+    "useCases": [
+      "HTTP handlers",
+      "Background workers"
+    ],
+    "tips": [
+      "Use WithTimeout on external calls",
+      "Respect cancellation",
+      "Avoid leaking goroutines"
+    ]
   },
   {
     "title": "Go Concurrency: Worker Pool",
     "category": "golang",
     "text": "A worker pool limits parallel work by feeding jobs into a bounded channel processed by N goroutines.",
     "explain": "Prevents resource exhaustion while keeping CPUs busy.",
-    "useCases": ["Batch jobs", "I/O heavy tasks"],
-    "tips": ["Tune N from observability", "Backpressure with bounded queues", "Graceful shutdown"]
+    "useCases": [
+      "Batch jobs",
+      "I/O heavy tasks"
+    ],
+    "tips": [
+      "Tune N from observability",
+      "Backpressure with bounded queues",
+      "Graceful shutdown"
+    ]
+  },
+  {
+    "title": "SOLID: Single Responsibility",
+    "category": "solid",
+    "text": "A class/module should have one reason to change: a single responsibility.",
+    "explain": "Reduces coupling and makes code easier to test and modify.",
+    "useCases": [
+      "Refactoring large services",
+      "Designing modules"
+    ],
+    "tips": [
+      "Extract responsibilities",
+      "Name by responsibility",
+      "Keep interfaces small"
+    ]
+  },
+  {
+    "title": "Testing Pyramid",
+    "category": "testing",
+    "text": "Favor many fast unit tests, fewer integration tests, and a handful of end\u2011to\u2011end tests.",
+    "explain": "Optimizes feedback speed without sacrificing confidence.",
+    "useCases": [
+      "CI pipelines",
+      "Microservices"
+    ],
+    "tips": [
+      "Mock I/O at unit layer",
+      "Stabilize flaky E2E",
+      "Test happy + failure paths"
+    ]
   }
 ]

@@ -30,3 +30,24 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Go build artifacts
+backend/server
+backend/*.exe
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker
+*.env

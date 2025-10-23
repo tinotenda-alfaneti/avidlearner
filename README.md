@@ -1,26 +1,54 @@
-# avidlearner
-my own tutor mvp
 
-Run locally
-1. Backend (Go):
+# AvidLearner — Software Engineering Coach (Go + React)
 
-	- Build and run (default port 8080):
+Single container app: Go backend + React frontend.
 
-	  Set PORT if you want a different port (e.g. 8081).
-
-2. Frontend:
-
-	- Open `frontend/index.html` in your browser or serve it from the backend (backend serves `../frontend` by default).
-
-Examples (Windows PowerShell):
-
-```powershell
-# Build backend
-cd .\backend
-go build -o backend.exe .
-# Run on a different port if needed
-$env:PORT = '8081'
-Start-Process -NoNewWindow -FilePath "$PWD\backend.exe" -WorkingDirectory "$PWD"
+## Project Layout
+```
+.
+├── Dockerfile           # root-level, builds frontend and backend
+├── data/
+│   └── lessons.json     # rich dataset (same schema, model-friendly)
+├── backend/
+│   ├── main.go          # /api/lessons, /api/random, /api/session (stateful)
+│   └── go.mod
+└── frontend/            # Vite + React app
+    ├── package.json
+    ├── vite.config.js   # proxies /api to :8081 in dev
+    └── src/...
 ```
 
-Then open http://localhost:8081/ in your browser (or the port you set).
+## Dev
+Backend:
+```
+cd backend
+go run main.go
+```
+Frontend (Vite dev server with API proxy):
+```
+cd frontend
+npm i
+npm run dev
+```
+
+## Build & Run (Docker)
+```
+docker build -t avidlearner .
+docker run -p 8081:8081 avidlearner
+```
+Open http://localhost:8081
+
+## API
+- `GET /api/lessons` → `{ categories, lessons }`
+- `GET /api/random?category=any|<name>` → one lesson
+- `GET /api/session?stage=lesson` → returns a lesson and primes a quiz
+- `GET /api/session?stage=quiz` → returns question + options
+- `GET /api/session?stage=result&answer=A|B|C|D` → evaluates, updates coins/streak
+
+State is kept per-browser via a cookie (`sid`) and in-memory on the server runtime.
+You can replace `data/lessons.json` with a model-generated dataset using the same schema without breaking the UI.
+```
+[
+  { "title": "...", "category": "...", "text": "...", "explain": "...", "useCases": [], "tips": [] }
+]
+```
