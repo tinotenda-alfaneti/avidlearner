@@ -74,6 +74,17 @@ pipeline {
             echo "🧱 Ensuring namespace ${NAMESPACE} exists..."
             $WORKSPACE/bin/kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 
+            echo "📦 Ensuring jq is installed..."
+            if command -v apk >/dev/null 2>&1; then
+              apk add --no-cache jq
+            elif command -v apt-get >/dev/null 2>&1; then
+              apt-get update -y && apt-get install -y jq
+            elif command -v yum >/dev/null 2>&1; then
+              yum install -y jq
+            else
+              echo "❌ jq not found and no package manager available!" && exit 1
+            fi
+
             echo "🔁 Copying dockerhub-creds from ${SOURCE_NS} to ${NAMESPACE}..."
             SECRET_JSON=$($WORKSPACE/bin/kubectl get secret dockerhub-creds -n ${SOURCE_NS} -o json)
 
