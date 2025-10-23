@@ -1,6 +1,6 @@
 apiVersion: v2
 name: app
-description: Generic reusable chart for Go web apps behind Cloudflare (port 80)
+description: Generic reusable chart for Go web apps (port 80), NGINX ingress, Cloudflare fronted
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "1.0.0"

@@ -13,18 +13,32 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className | quote }}
   rules:
-    - host: {{ printf "%s.atarnet.org" .Release.Name | quote }}
+    - host: {{- if (index .Values.ingress.hosts 0).host | default "" -}}
+             {{ (index .Values.ingress.hosts 0).host | quote }}
+           {{- else -}}
+             {{ printf "%s.atarnet.org" .Release.Name | quote }}
+           {{- end }}
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          {{- range (index .Values.ingress.hosts 0).paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ .Release.Name }}
+                name: {{ $.Release.Name }}
                 port:
-                  number: {{ .Values.service.port }}
+                  number: {{ $.Values.service.port }}
+          {{- end }}
   tls:
-    - secretName: {{ .Values.ingress.tls.secretName }}
+    {{- range .Values.ingress.tls }}
+    - secretName: {{ .secretName }}
       hosts:
-        - {{ printf "%s.atarnet.org" .Release.Name | quote }}
+        {{- if .hosts }}
+          {{- range .hosts }}
+        - {{ . | default (printf "%s.atarnet.org" $.Release.Name) | quote }}
+          {{- end }}
+        {{- else }}
+        - {{ printf "%s.atarnet.org" $.Release.Name | quote }}
+        {{- end }}
+    {{- end }}
 {{- end }}
