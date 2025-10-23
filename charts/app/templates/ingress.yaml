@@ -1,4 +1,3 @@
-{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,20 +5,13 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ .Chart.Name }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-  {{- with .Values.ingress.annotations }}
   annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
-  ingressClassName: {{ .Values.ingress.className | default "nginx" }}
+  ingressClassName: nginx
   rules:
-    - host: {{- $host := "" -}}
-      {{- if and .Values.ingress.hosts (kindIs "slice" .Values.ingress.hosts) (gt (len .Values.ingress.hosts) 0) -}}
-        {{- $host = (index .Values.ingress.hosts 0).host | default (printf "%s.atarnet.org" .Release.Name) -}}
-      {{- else -}}
-        {{- $host = (printf "%s.atarnet.org" .Release.Name) -}}
-      {{- end -}}
-      {{ $host | quote }}
+    - host: {{ printf "%s.atarnet.org" .Release.Name | quote }}
       http:
         paths:
           - path: /
@@ -28,9 +20,8 @@ spec:
               service:
                 name: {{ .Release.Name }}
                 port:
-                  number: {{ .Values.service.port | default 80 }}
+                  number: 80
   tls:
-    - secretName: {{ (index .Values.ingress.tls 0).secretName | default "tls-atarnet" }}
+    - secretName: tls-atarnet
       hosts:
-        - {{ $host | quote }}
-{{- end }}
+        - {{ printf "%s.atarnet.org" .Release.Name | quote }}
