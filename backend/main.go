@@ -68,7 +68,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "80"
+		port = "8081"
 	}
 	log.Printf("Backend running on http://localhost:%s …\n", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {

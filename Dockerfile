@@ -24,7 +24,7 @@ COPY --from=builder /out/backend /app/backend
 COPY --from=builder /src/frontend /app/frontend
 COPY --from=builder /src/data /data
 
-ENV PORT=80
-EXPOSE 80
+ENV PORT=8081
+EXPOSE 8081
 
 ENTRYPOINT ["/app/backend"]
