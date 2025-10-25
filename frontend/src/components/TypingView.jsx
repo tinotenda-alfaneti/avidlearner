@@ -24,9 +24,9 @@ export default function TypingView({
   const [startTime, setStartTime] = useState(0);
   const [deadline, setDeadline] = useState(0);
   const [remain, setRemain] = useState(60);
-  const [stats, setStats] = useState({ wpm: 0, acc: 100, streak: 0, best: 0 });
+  const [stats, setStats] = useState(() => ({ wpm: 0, acc: 100, streak: 0, best: typingBest }));
   const inputRef = useRef(null);
-  const statsRef = useRef(stats);
+  const statsRef = useRef({ wpm: 0, acc: 100, streak: 0, best: typingBest });
 
   function computeStats(t, src, startMs) {
     const correct = t.split('').filter((ch, i) => ch === src[i]).length;
@@ -46,8 +46,9 @@ export default function TypingView({
   }
 
   async function start() {
-    setStats({ wpm: 0, acc: 100, streak: 0, best: 0 });
-    statsRef.current = { wpm: 0, acc: 100, streak: 0, best: typingBest };
+    const resetStats = { wpm: 0, acc: 100, streak: 0, best: typingBest };
+    setStats(resetStats);
+    statsRef.current = resetStats;
     onTypingStats && onTypingStats({ streak: 0, best: typingBest });
     const l = await randomLesson(pickCategory());
     setLesson(l);
@@ -91,6 +92,14 @@ export default function TypingView({
   useEffect(() => { statsRef.current = stats; }, [stats]);
 
   useEffect(() => {
+    setStats(prev => {
+      const updated = { ...prev, best: Math.max(prev.best, typingBest) };
+      statsRef.current = updated;
+      return updated;
+    });
+  }, [typingBest]);
+
+  useEffect(() => {
     if (!running && lesson && typed) {
       onTypingStats && onTypingStats({ streak: statsRef.current.streak, best: statsRef.current.best });
     }
@@ -124,11 +133,20 @@ export default function TypingView({
             ))}
           </select>
         </div>
-        <label>Duration&nbsp;
-          <input type="number" value={duration} min="15" max="300" step="15"
-                 onChange={e=>setDuration(parseInt(e.target.value||'60',10))}/>
-        </label>
-        <button className="primary" onClick={start}>Start</button>
+        <div className="badge">
+          <span role="img" aria-hidden="true">⏱</span>Duration:
+          <input
+            className="badge-input"
+            type="number"
+            value={duration}
+            min="15"
+            max="300"
+            step="15"
+            onChange={e=>setDuration(parseInt(e.target.value||'60',10))}
+          />
+          <span>sec</span>
+        </div>
+        <button className="badge badge-button" onClick={start}>▶ Start</button>
       </div>
 
       <div className="metrics" style={{marginTop:12}}>

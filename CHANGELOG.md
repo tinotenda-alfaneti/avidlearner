@@ -1,4 +1,4 @@
-## [v1.0.2 - Unreleased]
+## [v0.0.1 - Unreleased]
 
 ### Added
 - Configured the frontend as a Progressive Web App (PWA) via Vite’s PWA plugin, including manifest metadata, service worker registration, and an app icon so deployments support offline usage and install prompts.

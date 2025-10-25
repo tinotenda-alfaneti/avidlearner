@@ -29,7 +29,7 @@ export default function Dashboard({
           <span className="badge">💰 Coins: {coins}</span>
           <span className="badge">🔥 Quiz Streak: {quizStreak}</span>
         </div>
-        <div className="dash-card__actions">
+        <div className="dash-card__actions dash-card__actions--center">
           <button className="primary" onClick={onStartLearn}>Launch Learn Mode</button>
         </div>
         <div className="card-note">Tip: Pick a category or leave "Any" to rotate through everything.</div>
@@ -44,7 +44,7 @@ export default function Dashboard({
           <span className="badge">⌨ Typing Streak: {typingStreak}</span>
           <span className="badge">🏆 Typing Best: {typingBest}</span>
         </div>
-        <div className="dash-card__actions">
+        <div className="dash-card__actions dash-card__actions--center">
           <button className="primary" onClick={onStartTyping}>Launch Typing Mode</button>
         </div>
         <div className="card-note">Your streak resets when you exit a session early. Finish strong to keep improving.</div>

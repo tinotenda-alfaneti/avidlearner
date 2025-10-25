@@ -77,11 +77,34 @@ button.ghost { background:transparent; }
   gap:8px;
   align-items:center;
 }
+.badge-input {
+  background:transparent;
+  border:none;
+  color:inherit;
+  width:60px;
+  padding:0 4px;
+  text-align:center;
+  font:inherit;
+}
+.badge-input:focus {
+  outline:none;
+}
+.badge-button {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  cursor:pointer;
+  border:none;
+}
 .dash-card__actions {
   margin-top:16px;
   display:flex;
   flex-wrap:wrap;
   gap:12px;
+}
+.dash-card__actions--center {
+  justify-content:center;
 }
 .card-note {
   margin-top:14px;
