@@ -40,7 +40,6 @@ button.ghost { background:transparent; }
 }
 .badge select:focus { outline:none; }
 .badge::after {
-  content:'⌄';
   position:absolute;
   right:12px;
   top:50%;

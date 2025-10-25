@@ -20,10 +20,10 @@ export default function Dashboard({
     <div className="card">
       <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
         <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
-          <span className="badge">💰 Coins: {coins}</span>
-          <span className="badge">🔥 Streak: {streak}</span>
+          <span className="badge">Coins: {coins}</span>
+          <span className="badge">Streak: {streak}</span>
           <div className="badge">
-            <span role="img" aria-hidden="true">📚</span>Category:
+            <span role="img" aria-hidden="true"></span>Category:
             <select
               aria-label="Category"
               value={selectedCategory}

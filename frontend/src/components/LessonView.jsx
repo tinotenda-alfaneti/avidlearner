@@ -23,7 +23,7 @@ export default function LessonView({
       </div>
       <div style={{display:'flex', justifyContent:'flex-start', marginBottom:12}}>
         <div className="badge">
-          <span role="img" aria-hidden="true">📚</span>Category:
+          <span role="img" aria-hidden="true"></span>Category:
           <select
             aria-label="Category"
             value={selectedCategory}

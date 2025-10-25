@@ -97,7 +97,7 @@ export default function TypingView({
 
       <div className="row">
         <div className="badge">
-          <span role="img" aria-hidden="true">📚</span>Category:
+          <span role="img" aria-hidden="true"></span>Category:
           <select
             aria-label="Category"
             value={selectedCategory}
