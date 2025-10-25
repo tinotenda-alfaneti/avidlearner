@@ -1,7 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { randomLesson } from '../api';
 
-export default function TypingView({ onExit }) {
+function categoryLabel(value) {
+  if (value === 'any') return 'Any';
+  if (value === 'random') return 'Random';
+  return value.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export default function TypingView({
+  onExit,
+  categoryOptions = [],
+  availableCategories = [],
+  selectedCategory = 'any',
+  onSelectCategory
+}) {
   const [lesson, setLesson] = useState(null);
   const [text, setText] = useState('');
   const [typed, setTyped] = useState('');
@@ -21,8 +33,17 @@ export default function TypingView({ onExit }) {
     return { wpm, acc, streak: stats.streak, best: stats.best };
   }
 
+  function pickCategory() {
+    if (selectedCategory === 'random') {
+      if (!availableCategories.length) return 'any';
+      const choice = availableCategories[Math.floor(Math.random() * availableCategories.length)];
+      return choice || 'any';
+    }
+    return selectedCategory || 'any';
+  }
+
   async function start() {
-    const l = await randomLesson('any');
+    const l = await randomLesson(pickCategory());
     setLesson(l);
     setText(l.text);
     setTyped('');
@@ -75,6 +96,19 @@ export default function TypingView({ onExit }) {
       </div>
 
       <div className="row">
+        <div className="badge">
+          <span role="img" aria-hidden="true">📚</span>Category:
+          <select
+            aria-label="Category"
+            value={selectedCategory}
+            onChange={e => onSelectCategory && onSelectCategory(e.target.value)}
+            className="badge-select"
+          >
+            {categoryOptions.map(opt => (
+              <option key={opt} value={opt}>{categoryLabel(opt)}</option>
+            ))}
+          </select>
+        </div>
         <label>Duration&nbsp;
           <input type="number" value={duration} min="15" max="300" step="15"
                  onChange={e=>setDuration(parseInt(e.target.value||'60',10))}/>

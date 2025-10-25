@@ -24,7 +24,35 @@ button.ghost { background:transparent; }
 .prompt .good { color: var(--good); }
 .prompt .bad  { color: var(--bad); text-decoration: underline wavy var(--bad); }
 
-.badge { background:#0b122b; border:1px solid #ffffff22; border-radius:999px; padding:6px 10px; font-size:12px; }
+.badge { background:#0b122b; border:1px solid #ffffff22; border-radius:999px; padding:6px 10px; font-size:12px; display:flex; align-items:center; gap:6px; position:relative; }
+.badge select {
+  background:#121b3a !important;
+  color:inherit;
+  border:none;
+  font:inherit;
+  padding:2px 24px 2px 8px;
+  border-radius:8px;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  transition:none;
+}
+.badge select:focus { outline:none; }
+.badge::after {
+  content:'⌄';
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:12px;
+  pointer-events:none;
+  color:var(--muted);
+}
+.badge select option {
+  background:#0f1631;
+  color:var(--text);
+}
 .option { display:block; padding:10px 12px; border-radius:10px; border:1px solid #ffffff22; margin:6px 0; cursor:pointer; }
 .option:hover { border-color:#6ea8fe; }
 

@@ -1,11 +1,40 @@
 import React from 'react';
 
-export default function LessonView({ lesson, onNext, onStartQuiz, onExit }) {
+function categoryLabel(value) {
+  if (value === 'any') return 'Any';
+  if (value === 'random') return 'Random';
+  return value.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export default function LessonView({
+  lesson,
+  categoryOptions = [],
+  selectedCategory = 'any',
+  onSelectCategory,
+  onNext,
+  onStartQuiz,
+  onExit
+}) {
   if (!lesson) return null;
   return (
     <div className="card">
       <div className="nav">
         <button className="home" onClick={()=>onExit && onExit()}>Go Home</button>
+      </div>
+      <div style={{display:'flex', justifyContent:'flex-start', marginBottom:12}}>
+        <div className="badge">
+          <span role="img" aria-hidden="true">📚</span>Category:
+          <select
+            aria-label="Category"
+            value={selectedCategory}
+            onChange={e => onSelectCategory && onSelectCategory(e.target.value)}
+            className="badge-select"
+          >
+            {categoryOptions.map(opt => (
+              <option key={opt} value={opt}>{categoryLabel(opt)}</option>
+            ))}
+          </select>
+        </div>
       </div>
       <div style={{color:'#7d89b0', fontWeight:600}}>{lesson.category} · {lesson.title}</div>
       <div className="prompt" style={{marginTop:8}}>{lesson.text}</div>

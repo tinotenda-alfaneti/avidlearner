@@ -31,6 +31,8 @@ type LessonsResponse struct {
 	Lessons    map[string][]Lesson `json:"lessons"`
 }
 
+const lessonRepeatWindow = 100
+
 type SessionState struct {
 	Stage       string   `json:"stage"`
 	// lesson/reading
@@ -58,13 +60,14 @@ type QuizQuestion struct {
 
 // Per-session state
 type profile struct {
-	Coins      int
-	Streak     int
-	LessonsSeen []string
+	Coins         int
+	Streak        int
+	LessonsSeen   []string
 
-	CurrentQuiz []QuizQuestion
-	QuizIndex   int
-	LastLesson  *Lesson
+	CurrentQuiz   []QuizQuestion
+	QuizIndex     int
+	LastLesson    *Lesson
+	RecentLessons []string
 }
 
 // ---------- Globals ----------
@@ -186,6 +189,66 @@ func uniqueStrings(ss []string) []string {
 	return out
 }
 
+func pickLessonForProfile(p *profile, cat string) *Lesson {
+	if p == nil {
+		return pickRandomLesson(cat)
+	}
+
+	var pool []Lesson
+	if cat == "" || strings.EqualFold(cat, "any") {
+		for _, ls := range lessonsByCat {
+			pool = append(pool, ls...)
+		}
+	} else {
+		pool = append(pool, lessonsByCat[cat]...)
+	}
+	if len(pool) == 0 {
+		return nil
+	}
+
+	maxAvoid := lessonRepeatWindow
+	if len(pool) <= 1 {
+		maxAvoid = 0
+	} else if maxAvoid > len(pool)-1 {
+		maxAvoid = len(pool) - 1
+	}
+
+	avoid := map[string]struct{}{}
+	if maxAvoid > 0 {
+		for i := len(p.RecentLessons) - 1; i >= 0 && len(avoid) < maxAvoid; i-- {
+			title := p.RecentLessons[i]
+			if title == "" {
+				continue
+			}
+			if _, exists := avoid[title]; exists {
+				continue
+			}
+			avoid[title] = struct{}{}
+		}
+	}
+
+	selection := pool
+	if len(avoid) > 0 {
+		var candidates []Lesson
+		for _, l := range pool {
+			if _, ok := avoid[l.Title]; ok {
+				continue
+			}
+			candidates = append(candidates, l)
+		}
+		if len(candidates) > 0 {
+			selection = candidates
+		}
+	}
+
+	chosen := selection[mrand.Intn(len(selection))]
+	p.RecentLessons = append(p.RecentLessons, chosen.Title)
+	if lessonRepeatWindow > 0 && len(p.RecentLessons) > lessonRepeatWindow*2 {
+		p.RecentLessons = p.RecentLessons[len(p.RecentLessons)-lessonRepeatWindow:]
+	}
+	return &chosen
+}
+
 // ---------- Middleware ----------
 
 func withSession(next http.Handler) http.Handler {
@@ -235,8 +298,9 @@ func handleLessons(w http.ResponseWriter, r *http.Request) {
 
 func handleRandom(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	p := getProfile(r)
 	cat := r.URL.Query().Get("category")
-	lesson := pickRandomLesson(cat)
+	lesson := pickLessonForProfile(p, cat)
 	if lesson == nil {
 		w.WriteHeader(http.StatusNotFound)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "no lessons for category"})
@@ -263,7 +327,7 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		switch stage {
 		case "lesson":
-			lesson := pickRandomLesson(r.URL.Query().Get("category"))
+			lesson := pickLessonForProfile(p, r.URL.Query().Get("category"))
 			if lesson == nil {
 				http.Error(w, "no lessons", http.StatusInternalServerError)
 				return

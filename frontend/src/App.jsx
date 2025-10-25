@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './styles.css';
 import Dashboard from './components/Dashboard';
 import LessonView from './components/LessonView';
@@ -13,28 +13,70 @@ export default function App() {
   const [streak, setStreak] = useState(parseInt(localStorage.getItem('streak')||'0',10));
 
   const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('any');
+  const categoryRef = useRef('any');
   const [currentLesson, setCurrentLesson] = useState(null);
   const [quizQuestion, setQuizQuestion] = useState(null); // {question,options,index,total}
   const [result, setResult] = useState(null);             // {correct,earned,total,message}
 
   useEffect(() => {
-    getLessons().then(d => setCategories(d.categories||[])).catch(()=>{});
+    getLessons()
+      .then(d => {
+        const list = (d.categories || []).slice().sort((a, b) => a.localeCompare(b));
+        setCategories(list);
+      })
+      .catch(()=>{});
   }, []);
   useEffect(() => { localStorage.setItem('coins', String(coins)); }, [coins]);
   useEffect(() => { localStorage.setItem('streak', String(streak)); }, [streak]);
 
+  const categoryOptions = ['any', 'random', ...categories].filter((value, index, arr) => {
+    if (value === 'any' || value === 'random') {
+      return index === arr.indexOf(value);
+    }
+    return Boolean(value) && arr.indexOf(value) === index;
+  });
+
+  function resolveCategory(value) {
+    const target = value ?? categoryRef.current ?? selectedCategory;
+    if (target === 'random') {
+      if (!categories.length) return 'any';
+      const choice = categories[Math.floor(Math.random() * categories.length)];
+      return choice || 'any';
+    }
+    return target || 'any';
+  }
+
+  async function handleSelectCategory(value) {
+    categoryRef.current = value;
+    setSelectedCategory(value);
+    if (mode === 'reading') {
+      try {
+        const s = await getReadingLesson(resolveCategory(value));
+        setCurrentLesson(s.lesson);
+      } catch (err) {
+        // swallow; UI will keep previous lesson
+      }
+    }
+  }
+
   // ---------- Reading flow ----------
   async function startReading() {
-    const s = await getReadingLesson('any');
+    const s = await getReadingLesson(resolveCategory());
     setCurrentLesson(s.lesson);
     setMode('reading');
   }
   async function nextConcept() {
-    const s = await getReadingLesson('any');
-    await addLessonToQuiz(s.lesson.title);
+    if (currentLesson?.title) {
+      await addLessonToQuiz(currentLesson.title);
+    }
+    const s = await getReadingLesson(resolveCategory());
     setCurrentLesson(s.lesson);
   }
   async function beginQuiz() {
+    if (currentLesson?.title) {
+      await addLessonToQuiz(currentLesson.title);
+    }
     const q = await startQuiz();
     setQuizQuestion({ question: q.question, options: q.options, index: q.index, total: q.total });
     setMode('quiz');
@@ -80,6 +122,9 @@ export default function App() {
           <Dashboard
             coins={coins}
             streak={streak}
+            categoryOptions={categoryOptions}
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleSelectCategory}
             onStartLearn={startReading}
             onStartTyping={()=>setMode('typing')}
           />
@@ -100,6 +145,9 @@ export default function App() {
         {mode === 'reading' && currentLesson && (
           <LessonView
             lesson={currentLesson}
+            categoryOptions={categoryOptions}
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleSelectCategory}
             onNext={nextConcept}
             onStartQuiz={beginQuiz}
             onExit={()=>setMode('dashboard')}
@@ -118,7 +166,13 @@ export default function App() {
         )}
 
         {mode === 'typing' && (
-          <TypingView onExit={()=>setMode('dashboard')} />
+          <TypingView
+            categoryOptions={categoryOptions}
+            availableCategories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleSelectCategory}
+            onExit={()=>setMode('dashboard')}
+          />
         )}
 
       </div>

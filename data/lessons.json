@@ -2,15 +2,15 @@
   {
     "title": "Circuit Breaker",
     "category": "system-design",
-    "text": "Circuit breaker stops cascading failures by short\u2011circuiting unstable downstream calls and letting the system degrade gracefully.",
-    "explain": "A circuit breaker wraps a remote call. If recent failures exceed a threshold, it opens (blocks) the call for a cool\u2011down period. This prevents retry storms and preserves resources.",
+    "text": "Circuit breaker stops cascading failures by short‑circuiting unstable downstream calls and letting the system degrade gracefully.",
+    "explain": "A circuit breaker wraps a remote call. If recent failures exceed a threshold, it opens (blocks) the call for a cool‑down period. This prevents retry storms and preserves resources.",
     "useCases": [
       "Calling flaky downstream services",
       "Protecting thread pools under load",
       "Mobile apps with unreliable networks"
     ],
     "tips": [
-      "Track half\u2011open state to probe recovery",
+      "Track half‑open state to probe recovery",
       "Expose metrics: open/closed counts",
       "Backoff + jitter retries"
     ]
@@ -23,7 +23,7 @@
     "useCases": [
       "Payment APIs",
       "Webhook receivers",
-      "Network\u2011fragile flows with retries"
+      "Network‑fragile flows with retries"
     ],
     "tips": [
       "Set sensible key TTLs",
@@ -34,7 +34,7 @@
   {
     "title": "Backpressure",
     "category": "system-design",
-    "text": "Backpressure signals producers to slow down when consumers can\u2019t keep up, avoiding queue blow\u2011ups and timeouts.",
+    "text": "Backpressure signals producers to slow down when consumers can’t keep up, avoiding queue blow‑ups and timeouts.",
     "explain": "Use bounded queues and propagate capacity upstream. Prefer shedding load early over timing out late.",
     "useCases": [
       "Message brokers",
@@ -53,7 +53,7 @@
     "text": "CQRS splits reads from writes so each side can be optimized independently for scale and latency.",
     "explain": "Commands change state; queries read from projections/materialized views. Eventual consistency is common.",
     "useCases": [
-      "High\u2011read apps",
+      "High‑read apps",
       "Auditability via event sourcing",
       "Complex domain models"
     ],
@@ -67,7 +67,7 @@
     "title": "Event Sourcing",
     "category": "architecture",
     "text": "Event sourcing stores the sequence of domain events; state is a fold of events.",
-    "explain": "Instead of overwriting rows, append events. You can rebuild state and time\u2011travel for debugging and audits.",
+    "explain": "Instead of overwriting rows, append events. You can rebuild state and time‑travel for debugging and audits.",
     "useCases": [
       "Financial ledgers",
       "Orders & workflows",
@@ -85,7 +85,7 @@
     "text": "Hexagonal (ports & adapters) isolates domain logic from I/O so frameworks become plugins, not foundations.",
     "explain": "Define domain ports; implement adapters for HTTP, DB, queues. Tests target the core.",
     "useCases": [
-      "Long\u2011lived services",
+      "Long‑lived services",
       "Multiple UIs or transports",
       "Testable core logic"
     ],
@@ -113,7 +113,7 @@
     "title": "Clean Code: Functions",
     "category": "clean-code",
     "text": "Small functions with single responsibility are easier to test, reuse, and reason about.",
-    "explain": "Limit parameters, avoid side\u2011effects, and keep a single level of abstraction per function.",
+    "explain": "Limit parameters, avoid side‑effects, and keep a single level of abstraction per function.",
     "useCases": [
       "Refactoring hotspots",
       "Utility libraries"
@@ -121,7 +121,7 @@
     "tips": [
       "Return early",
       "Extract pure helpers",
-      "Name side\u2011effects explicitly"
+      "Name side‑effects explicitly"
     ]
   },
   {
@@ -150,7 +150,7 @@
       "Static assets"
     ],
     "tips": [
-      "Prefer cache\u2011aside for simplicity",
+      "Prefer cache‑aside for simplicity",
       "Use versioned keys",
       "Warm-up on deploy"
     ]
@@ -182,7 +182,7 @@
     "tips": [
       "Keep transactions short",
       "Index predicates",
-      "Beware long\u2011running locks"
+      "Beware long‑running locks"
     ]
   },
   {
@@ -196,7 +196,7 @@
     ],
     "tips": [
       "Retry only idempotent ops",
-      "Respect Retry\u2011After",
+      "Respect Retry‑After",
       "Add circuit breakers"
     ]
   },
@@ -212,17 +212,17 @@
     "tips": [
       "Choose fair units (req/user)",
       "Return headers with limits",
-      "Separate global vs per\u2011key"
+      "Separate global vs per‑key"
     ]
   },
   {
     "title": "PACELC (vs CAP)",
     "category": "theory",
     "text": "PACELC: if Partition (P) then trade Availability (A) vs Consistency (C); Else, trade Latency (L) vs Consistency (C).",
-    "explain": "CAP focuses on partitions; PACELC adds the no\u2011partition trade\u2011off of latency vs consistency.",
+    "explain": "CAP focuses on partitions; PACELC adds the no‑partition trade‑off of latency vs consistency.",
     "useCases": [
       "DB selection",
-      "Multi\u2011region design"
+      "Multi‑region design"
     ],
     "tips": [
       "Decide per operation",
@@ -233,10 +233,10 @@
   {
     "title": "gRPC vs REST",
     "category": "apis",
-    "text": "gRPC offers binary proto, strict contracts, and streaming; REST is human\u2011friendly and cacheable over HTTP/1.1.",
+    "text": "gRPC offers binary proto, strict contracts, and streaming; REST is human‑friendly and cacheable over HTTP/1.1.",
     "explain": "Pick transport to match clients and performance needs.",
     "useCases": [
-      "Service\u2011to\u2011service (gRPC)",
+      "Service‑to‑service (gRPC)",
       "Public APIs (REST)"
     ],
     "tips": [
@@ -246,9 +246,9 @@
     ]
   },
   {
-    "title": "Zero\u2011Downtime Deploys",
+    "title": "Zero‑Downtime Deploys",
     "category": "devops",
-    "text": "Blue\u2011green or rolling deploys shift traffic gradually to new versions to avoid downtime.",
+    "text": "Blue‑green or rolling deploys shift traffic gradually to new versions to avoid downtime.",
     "explain": "Keep schemas backward compatible during rollout; add feature flags for quick rollback.",
     "useCases": [
       "Web services",
@@ -264,14 +264,14 @@
     "title": "Observability: SLOs",
     "category": "observability",
     "text": "Define SLOs with error budgets; alert on burn rate instead of every blip.",
-    "explain": "Pick user\u2011centric metrics (latency, availability). Burn\u2011rate alerts reduce noise and catch incidents early.",
+    "explain": "Pick user‑centric metrics (latency, availability). Burn‑rate alerts reduce noise and catch incidents early.",
     "useCases": [
-      "On\u2011call",
+      "On‑call",
       "Platform teams"
     ],
     "tips": [
       "Choose few golden signals",
-      "Trace high\u2011latency paths",
+      "Trace high‑latency paths",
       "Sample smartly"
     ]
   },
@@ -323,7 +323,7 @@
   {
     "title": "Testing Pyramid",
     "category": "testing",
-    "text": "Favor many fast unit tests, fewer integration tests, and a handful of end\u2011to\u2011end tests.",
+    "text": "Favor many fast unit tests, fewer integration tests, and a handful of end‑to‑end tests.",
     "explain": "Optimizes feedback speed without sacrificing confidence.",
     "useCases": [
       "CI pipelines",
@@ -333,6 +333,2582 @@
       "Mock I/O at unit layer",
       "Stabilize flaky E2E",
       "Test happy + failure paths"
+    ]
+  },
+  {
+    "title": "Rate Limiting Strategies",
+    "category": "system-design",
+    "text": "Rate limiting protects shared resources by capping how often clients can call an endpoint.",
+    "explain": "Token or leaky bucket algorithms balance fairness and burst tolerance so a single client cannot overwhelm the fleet.",
+    "useCases": [
+      "Public APIs with quotas",
+      "Protecting stateful services",
+      "Mitigating brute-force attacks"
+    ],
+    "tips": [
+      "Expose remaining quota headers",
+      "Keep counters in fast stores like Redis",
+      "Rate limit at the edge and origin"
+    ]
+  },
+  {
+    "title": "Request Hedging",
+    "category": "system-design",
+    "text": "Request hedging sends a backup request after a latency threshold to cut long-tail delays.",
+    "explain": "By racing copies to different replicas you trade a small amount of extra work for predictable latencies.",
+    "useCases": [
+      "Read-heavy microservices",
+      "Geo-replicated databases",
+      "Client SDKs with multiple regions"
+    ],
+    "tips": [
+      "Only hedge idempotent operations",
+      "Add jitter to hedge delay",
+      "Cancel slower in-flight requests promptly"
+    ]
+  },
+  {
+    "title": "Bulkhead Isolation",
+    "category": "system-design",
+    "text": "Bulkheads isolate workloads into separate pools so a slow neighbor cannot sink the entire ship.",
+    "explain": "Segment thread pools, queues, or pods per dependency to limit blast radius when one component misbehaves.",
+    "useCases": [
+      "Multi-tenant SaaS",
+      "APIs calling several downstreams",
+      "Background job processors"
+    ],
+    "tips": [
+      "Prefer small dedicated pools over one giant pool",
+      "Alert on pool exhaustion",
+      "Combine with circuit breakers for resilience"
+    ]
+  },
+  {
+    "title": "Service Mesh Observability",
+    "category": "system-design",
+    "text": "A service mesh gives uniform telemetry, retries, and mTLS across services via sidecars.",
+    "explain": "Meshes abstract cross-cutting concerns so app code stays simple while ops gains policy control.",
+    "useCases": [
+      "Polyglot microservices",
+      "Need for zero-trust networking",
+      "Progressive delivery with traffic shifting"
+    ],
+    "tips": [
+      "Start with limited namespaces",
+      "Surface golden metrics dashboards",
+      "Automate sidecar injection validation"
+    ]
+  },
+  {
+    "title": "Leader Election",
+    "category": "system-design",
+    "text": "Leader election picks a single coordinator so distributed workers avoid conflicting actions.",
+    "explain": "Use leases with TTLs in a consistent store so leaders relinquish quickly if they fail.",
+    "useCases": [
+      "Scheduler masters",
+      "Coordinating background jobs",
+      "Distributed locks for batch work"
+    ],
+    "tips": [
+      "Keep lease durations short",
+      "Observe leadership churn",
+      "Prefer battle-tested primitives like etcd or Zookeeper"
+    ]
+  },
+  {
+    "title": "Chaos Engineering Gamedays",
+    "category": "system-design",
+    "text": "Chaos exercises inject failure on purpose to validate that systems and teams respond gracefully.",
+    "explain": "Controlled experiments reveal blind spots in automation, observability, and on-call habits before customers do.",
+    "useCases": [
+      "Validating disaster recovery",
+      "Training incident responders",
+      "Measuring resilience improvements"
+    ],
+    "tips": [
+      "Start with small blast radius",
+      "Have rollback criteria documented",
+      "Capture learnings in postmortems"
+    ]
+  },
+  {
+    "title": "Microservices vs Monolith Tradeoffs",
+    "category": "architecture",
+    "text": "Choosing between monoliths and microservices hinges on team size, domain complexity, and operational maturity.",
+    "explain": "Monoliths optimize for development speed early, while microservices support independent deployment and scaling with more overhead.",
+    "useCases": [
+      "Startups consolidating MVP features",
+      "Large teams needing domain isolation",
+      "Systems with heterogeneous scaling needs"
+    ],
+    "tips": [
+      "Keep module boundaries clean",
+      "Automate service discovery",
+      "Invest in platform tooling before splitting"
+    ]
+  },
+  {
+    "title": "Saga Pattern",
+    "category": "architecture",
+    "text": "Sagas coordinate distributed transactions via a sequence of local steps with compensations for rollback.",
+    "explain": "Each service commits its part and publishes an event; compensating actions unwind when a later step fails.",
+    "useCases": [
+      "E-commerce order workflows",
+      "Travel booking aggregates",
+      "Long-running business processes"
+    ],
+    "tips": [
+      "Model success and compensation events",
+      "Persist saga state centrally",
+      "Test unhappy paths extensively"
+    ]
+  },
+  {
+    "title": "Bounded Contexts",
+    "category": "architecture",
+    "text": "Bounded contexts keep domain language, data models, and rules consistent within a defined area.",
+    "explain": "Explicit boundaries avoid bloated models and allow each context to evolve independently.",
+    "useCases": [
+      "Domain-driven design initiatives",
+      "Microservice decomposition",
+      "Aligning teams to business capabilities"
+    ],
+    "tips": [
+      "Document context maps",
+      "Avoid sharing persistence across contexts",
+      "Use anti-corruption layers at the edges"
+    ]
+  },
+  {
+    "title": "Anti-Corruption Layer",
+    "category": "architecture",
+    "text": "An anti-corruption layer shields a clean model from legacy systems by translating at the boundary.",
+    "explain": "Adapters decouple rich domain logic from messy schemas so refactoring is possible without rewriting everything.",
+    "useCases": [
+      "Integrating with legacy ERPs",
+      "Migrating monolith modules",
+      "Introducing domain-driven services"
+    ],
+    "tips": [
+      "Keep translation code well-tested",
+      "Avoid leaking legacy terminology",
+      "Plan eventual sunset of the adapter"
+    ]
+  },
+  {
+    "title": "Code Smells Awareness",
+    "category": "clean-code",
+    "text": "Recognizing code smells helps teams spot maintainability issues before they calcify.",
+    "explain": "Smells like long methods, feature envy, or data clumps are heuristics that highlight refactoring opportunities.",
+    "useCases": [
+      "Code reviews",
+      "Legacy rewrites",
+      "Teaching new engineers"
+    ],
+    "tips": [
+      "Track recurring smells in retros",
+      "Pair refactoring with tests",
+      "Automate detection where possible"
+    ]
+  },
+  {
+    "title": "Refactoring Safety Nets",
+    "category": "clean-code",
+    "text": "Safe refactoring relies on characterization tests and incremental changes.",
+    "explain": "Golden master tests or approval testing capture current behavior so improvements don't break edge cases.",
+    "useCases": [
+      "Legacy systems",
+      "Large-scale API changes",
+      "Performance tuning"
+    ],
+    "tips": [
+      "Create fast feedback loops",
+      "Toggle features behind flags",
+      "Refactor in small, reviewable steps"
+    ]
+  },
+  {
+    "title": "Commenting Guidelines",
+    "category": "clean-code",
+    "text": "Comments should explain why, not what, and be treated as part of the codebase.",
+    "explain": "Use comments for context, decisions, and constraints while keeping code expressive enough to convey the how.",
+    "useCases": [
+      "Documenting invariants",
+      "Clarifying workarounds",
+      "Onboarding new teammates"
+    ],
+    "tips": [
+      "Delete stale comments promptly",
+      "Prefer docstrings for public APIs",
+      "Link to design docs when helpful"
+    ]
+  },
+  {
+    "title": "Defensive Programming Boundaries",
+    "category": "clean-code",
+    "text": "Defensive programming validates inputs at module boundaries while trusting internals.",
+    "explain": "By checking contracts at the edge you prevent cascading bugs without littering internal code with paranoia.",
+    "useCases": [
+      "API gateways",
+      "Library development",
+      "Handling untrusted data"
+    ],
+    "tips": [
+      "Fail fast with descriptive errors",
+      "Sanitize data before persistence",
+      "Centralize validation logic"
+    ]
+  },
+  {
+    "title": "Go CPU Profiling",
+    "category": "performance",
+    "text": "CPU profiling pinpoints hot paths in Go binaries so you optimize the right thing.",
+    "explain": "The built-in pprof profiler samples stack traces, showing where execution time is spent under load.",
+    "useCases": [
+      "High-CPU services",
+      "Batch jobs",
+      "Command-line tools"
+    ],
+    "tips": [
+      "Collect profiles from production-like traffic",
+      "Compare before and after snapshots",
+      "Optimize only after validating the hotspot"
+    ]
+  },
+  {
+    "title": "Memory Leak Hunting",
+    "category": "performance",
+    "text": "Memory profiling surfaces reference leaks and oversized allocations.",
+    "explain": "Heap profiles and allocation tracking reveal objects that outlive requests or repeated buffers that should be pooled.",
+    "useCases": [
+      "Long-lived servers",
+      "Worker pools",
+      "Data processing pipelines"
+    ],
+    "tips": [
+      "Enable escape analysis warnings",
+      "Use pprof heap diffs",
+      "Re-use buffers with sync.Pool judiciously"
+    ]
+  },
+  {
+    "title": "Async I/O Patterns",
+    "category": "performance",
+    "text": "Asynchronous I/O keeps threads free while waiting on disks or networks.",
+    "explain": "Event loops, futures, or goroutines multiplex I/O-bound work to maximize resource utilization.",
+    "useCases": [
+      "Proxy servers",
+      "Realtime messaging",
+      "File upload services"
+    ],
+    "tips": [
+      "Measure context-switch overhead",
+      "Batch operations when possible",
+      "Tune kernel limits for descriptors"
+    ]
+  },
+  {
+    "title": "Load Testing Strategy",
+    "category": "performance",
+    "text": "Load tests simulate realistic traffic to find scaling bottlenecks before launch.",
+    "explain": "Combine baseline, stress, and soak tests so you know both the capacity and failure modes of your stack.",
+    "useCases": [
+      "Major product launches",
+      "Regulatory performance requirements",
+      "Capacity planning"
+    ],
+    "tips": [
+      "Mirror production traffic mix",
+      "Warm caches before peak tests",
+      "Document service-level objectives"
+    ]
+  },
+  {
+    "title": "Index Tuning",
+    "category": "databases",
+    "text": "Thoughtful indexes accelerate queries while keeping write overhead acceptable.",
+    "explain": "Composite indexes, covering indexes, and selective columns deliver fast lookups without exploding storage.",
+    "useCases": [
+      "High-read OLTP systems",
+      "Reporting queries",
+      "APIs with multi-field filters"
+    ],
+    "tips": [
+      "Monitor index hit ratios",
+      "Drop unused indexes regularly",
+      "Align indexes with query plans"
+    ]
+  },
+  {
+    "title": "Sharding Strategies",
+    "category": "databases",
+    "text": "Sharding splits data across nodes to scale horizontally when a single database is not enough.",
+    "explain": "Key-based, range-based, or directory-based sharding each balance uniform distribution against query locality.",
+    "useCases": [
+      "User-centric SaaS",
+      "Large analytics tables",
+      "Geo-partitioned workloads"
+    ],
+    "tips": [
+      "Keep a metadata service of shards",
+      "Plan for rebalancing",
+      "Avoid cross-shard transactions when possible"
+    ]
+  },
+  {
+    "title": "Schema Migration Tactics",
+    "category": "databases",
+    "text": "Online schema changes use expand-contract patterns to avoid downtime.",
+    "explain": "Deploy backwards-compatible schema first, update code, then drop old columns once traffic migrates.",
+    "useCases": [
+      "Zero-downtime releases",
+      "Renaming columns",
+      "Splitting tables"
+    ],
+    "tips": [
+      "Automate migrations in CI/CD",
+      "Guard with feature flags",
+      "Backfill large tables in batches"
+    ]
+  },
+  {
+    "title": "Replication Lag Handling",
+    "category": "databases",
+    "text": "Replication lag introduces read-after-write inconsistencies in follower nodes.",
+    "explain": "Detect lag and pin critical reads to primaries or use change data capture to notify clients of eventual consistency.",
+    "useCases": [
+      "Read replicas",
+      "Geo-distributed clusters",
+      "Failover playbooks"
+    ],
+    "tips": [
+      "Monitor seconds behind master",
+      "Provide monotonic read tokens",
+      "Gracefully degrade when lag spikes"
+    ]
+  },
+  {
+    "title": "SLOs and Error Budgets",
+    "category": "reliability",
+    "text": "Service level objectives capture user expectations and guide investment in reliability.",
+    "explain": "Error budgets quantify how much unreliability is acceptable so teams balance shipping features with stability.",
+    "useCases": [
+      "Setting on-call policies",
+      "Prioritizing reliability work",
+      "Communicating with stakeholders"
+    ],
+    "tips": [
+      "Define SLIs from user journeys",
+      "Review budget burn weekly",
+      "Tie releases to remaining budget"
+    ]
+  },
+  {
+    "title": "Incident Response Readiness",
+    "category": "reliability",
+    "text": "Incident response runbooks and trained responders keep downtime short.",
+    "explain": "Clear roles, communication channels, and tooling reduce confusion during high-pressure outages.",
+    "useCases": [
+      "24/7 SaaS platforms",
+      "Compliance-driven industries",
+      "Complex multi-team services"
+    ],
+    "tips": [
+      "Practice with tabletop drills",
+      "Rotate incident commander duties",
+      "Automate stakeholder updates"
+    ]
+  },
+  {
+    "title": "Postmortem Culture",
+    "category": "reliability",
+    "text": "Blameless postmortems turn failures into systemic improvements.",
+    "explain": "Focus on contributing factors and guardrails so teams learn quickly without fear of punishment.",
+    "useCases": [
+      "Recurring incidents",
+      "Cross-team outages",
+      "Process regressions"
+    ],
+    "tips": [
+      "Publish action item owners",
+      "Track follow-up completion",
+      "Share learnings company-wide"
+    ]
+  },
+  {
+    "title": "Runbook Design",
+    "category": "reliability",
+    "text": "Runbooks provide step-by-step guidance to restore service during alerts.",
+    "explain": "They capture context, diagnostics, and remediation so any on-call engineer can respond confidently.",
+    "useCases": [
+      "Onboarding new responders",
+      "Reducing mean time to recovery",
+      "Standardizing operations"
+    ],
+    "tips": [
+      "Keep scripts copy-pasteable",
+      "Review runbooks after incidents",
+      "Store in a searchable location"
+    ]
+  },
+  {
+    "title": "Infrastructure as Code",
+    "category": "devops",
+    "text": "Infrastructure as code (IaC) treats servers and networks as versioned artifacts.",
+    "explain": "Tools like Terraform or Pulumi let you review, test, and roll back infra alongside application changes.",
+    "useCases": [
+      "Repeatable environment provisioning",
+      "Disaster recovery",
+      "Compliance auditing"
+    ],
+    "tips": [
+      "Use modules for reuse",
+      "Validate plans in CI",
+      "Tag resources consistently"
+    ]
+  },
+  {
+    "title": "GitOps Workflows",
+    "category": "devops",
+    "text": "GitOps syncs desired state from Git to clusters automatically.",
+    "explain": "Controllers like Argo CD pull manifests, detect drift, and roll back when commits revert changes.",
+    "useCases": [
+      "Kubernetes configuration management",
+      "Multi-cluster deployments",
+      "Audit-friendly operations"
+    ],
+    "tips": [
+      "Keep manifests declarative",
+      "Separate app and platform repos",
+      "Alert on sync failures"
+    ]
+  },
+  {
+    "title": "Continuous Delivery Pipelines",
+    "category": "devops",
+    "text": "CD pipelines automate build, test, and deploy so code reaches production safely and quickly.",
+    "explain": "Gradual promotion through environments with automated checks reduces manual toil and human error.",
+    "useCases": [
+      "Microservice fleets",
+      "Regulated industries",
+      "Teams practicing trunk-based development"
+    ],
+    "tips": [
+      "Fail fast with parallel test stages",
+      "Version artifacts immutably",
+      "Gate production on quality signals"
+    ]
+  },
+  {
+    "title": "Blue Green Deployments",
+    "category": "devops",
+    "text": "Blue-green deployments run two production environments and switch traffic instantly.",
+    "explain": "You deploy to the idle color, run smoke tests, then flip load balancers; rollback is flipping back.",
+    "useCases": [
+      "High-availability services",
+      "Database schema upgrades",
+      "Risk-averse releases"
+    ],
+    "tips": [
+      "Keep data stores compatible",
+      "Automate health checks before cutover",
+      "Archive old color after validation"
+    ]
+  },
+  {
+    "title": "Canary Releases",
+    "category": "devops",
+    "text": "Canary releases shift a small slice of traffic to new code and watch health before full rollout.",
+    "explain": "Automated metrics and error checks guard against regressions while limiting blast radius.",
+    "useCases": [
+      "Feature flags",
+      "High-risk refactors",
+      "Infrastructure changes"
+    ],
+    "tips": [
+      "Define clear rollback thresholds",
+      "Segment canary traffic consistently",
+      "Automate analysis and promotion"
+    ]
+  },
+  {
+    "title": "Ansible Configuration Management",
+    "category": "devops",
+    "text": "Ansible applies idempotent playbooks over SSH to configure fleets without agents.",
+    "explain": "Declarative tasks expressed in YAML keep servers in sync and document intent.",
+    "useCases": [
+      "Bootstrapping servers",
+      "Patching operating systems",
+      "Provisioning development environments"
+    ],
+    "tips": [
+      "Lint playbooks with ansible-lint",
+      "Encrypt secrets with Vault",
+      "Use roles for reuse and testing"
+    ]
+  },
+  {
+    "title": "ChatOps Automation",
+    "category": "devops",
+    "text": "ChatOps brings automation and observability into team chat workflows.",
+    "explain": "Bots surface deploys, metrics, and runbooks where teams already coordinate, speeding up responses.",
+    "useCases": [
+      "Incident management",
+      "Self-service deployments",
+      "On-call handoffs"
+    ],
+    "tips": [
+      "Secure bot tokens",
+      "Log bot actions for audits",
+      "Keep commands short and discoverable"
+    ]
+  },
+  {
+    "title": "Kubernetes Pods and Deployments",
+    "category": "kubernetes",
+    "text": "Pods are the smallest deployable unit in Kubernetes and deployments manage replica lifecycles.",
+    "explain": "Deployments orchestrate rolling updates, replica scaling, and rollback for stateless workloads.",
+    "useCases": [
+      "Web APIs",
+      "Worker pools",
+      "Cron-like jobs with Jobs"
+    ],
+    "tips": [
+      "Set proper readiness probes",
+      "Use revision history for rollback",
+      "Pin image tags to immutable digests"
+    ]
+  },
+  {
+    "title": "Kubernetes Services and Ingress",
+    "category": "kubernetes",
+    "text": "Services provide stable networking to pods while ingress manages HTTP routing from outside the cluster.",
+    "explain": "ClusterIP, NodePort, and LoadBalancer types expose workloads differently; ingress controllers add path and host rules.",
+    "useCases": [
+      "Internal service discovery",
+      "Public APIs",
+      "Multi-tenant routing"
+    ],
+    "tips": [
+      "Label selectors carefully",
+      "Terminate TLS at ingress",
+      "Version routing rules with Git"
+    ]
+  },
+  {
+    "title": "ConfigMaps and Secrets",
+    "category": "kubernetes",
+    "text": "ConfigMaps store non-sensitive configuration while Secrets hold credentials encoded at rest.",
+    "explain": "Mount config as volumes or environment variables so container images stay immutable and portable.",
+    "useCases": [
+      "Feature toggles",
+      "Database connection strings",
+      "TLS certificates"
+    ],
+    "tips": [
+      "Mount secrets with least privilege",
+      "Reload pods when config changes",
+      "Integrate with external secret stores"
+    ]
+  },
+  {
+    "title": "StatefulSets for Stateful Workloads",
+    "category": "kubernetes",
+    "text": "StatefulSets give pods stable identities and persistent volumes for stateful services.",
+    "explain": "They ensure ordered rollout and storage claims so databases and queues keep data even when rescheduled.",
+    "useCases": [
+      "Databases on Kubernetes",
+      "Message brokers",
+      "Distributed caches"
+    ],
+    "tips": [
+      "Use headless services for stable DNS",
+      "Combine with PodDisruptionBudgets",
+      "Monitor volume growth"
+    ]
+  },
+  {
+    "title": "Helm Chart Authoring",
+    "category": "kubernetes",
+    "text": "Helm packages Kubernetes manifests with templating, versioning, and release tracking.",
+    "explain": "Charts promote reuse and consistent deployments across environments while values files drive customization.",
+    "useCases": [
+      "Platform teams shipping defaults",
+      "Third-party app installs",
+      "Self-service environments"
+    ],
+    "tips": [
+      "Version charts semantically",
+      "Lint with helm lint and unit tests",
+      "Document values with schema files"
+    ]
+  },
+  {
+    "title": "Kubernetes Operators Basics",
+    "category": "kubernetes",
+    "text": "Operators extend Kubernetes with custom controllers that encode domain knowledge.",
+    "explain": "They watch custom resources and reconcile actual state to desired state for complex systems.",
+    "useCases": [
+      "Managing databases",
+      "Automating certificate rotation",
+      "Provisioning cloud resources"
+    ],
+    "tips": [
+      "Start with Kubebuilder or Operator SDK",
+      "Design clear CRD schemas",
+      "Handle failure retries idempotently"
+    ]
+  },
+  {
+    "title": "Kubernetes RBAC Hardening",
+    "category": "kubernetes",
+    "text": "RBAC grants precise permissions to users and service accounts in Kubernetes.",
+    "explain": "Role and ClusterRole bindings enforce least privilege so compromised pods cannot escalate easily.",
+    "useCases": [
+      "Multi-team clusters",
+      "Production workloads",
+      "Compliance requirements"
+    ],
+    "tips": [
+      "Audit cluster-admin usage",
+      "Prefer namespaced roles",
+      "Rotate service account tokens"
+    ]
+  },
+  {
+    "title": "Network Policies",
+    "category": "kubernetes",
+    "text": "Network policies act as Kubernetes firewalls controlling pod-to-pod traffic.",
+    "explain": "They define allowed ingress and egress selectors so only intended communication occurs.",
+    "useCases": [
+      "Zero-trust clusters",
+      "Isolating environments",
+      "Meeting security standards"
+    ],
+    "tips": [
+      "Start with default deny",
+      "Annotate policies with owners",
+      "Test using network-policy aware CNI"
+    ]
+  },
+  {
+    "title": "Horizontal Pod Autoscaler",
+    "category": "kubernetes",
+    "text": "The HPA scales pod replicas based on metrics like CPU, memory, or custom signals.",
+    "explain": "Scaling rules respond to load so services stay responsive without manual intervention.",
+    "useCases": [
+      "Spiky traffic APIs",
+      "Queue workers",
+      "Batch processing"
+    ],
+    "tips": [
+      "Use custom metrics for real bottlenecks",
+      "Set minimum replicas for warm capacity",
+      "Watch for thrashing with slow cooldowns"
+    ]
+  },
+  {
+    "title": "Persistent Volumes and StorageClasses",
+    "category": "kubernetes",
+    "text": "Persistent volumes abstract storage so pods remain portable across nodes.",
+    "explain": "StorageClasses let you provision volumes dynamically with policies like SSD vs HDD or backup schedules.",
+    "useCases": [
+      "Databases needing durable disks",
+      "File uploads",
+      "Shared caches"
+    ],
+    "tips": [
+      "Match reclaim policy to workload",
+      "Use volume health monitoring",
+      "Encrypt disks at rest"
+    ]
+  },
+  {
+    "title": "Goroutines Fundamentals",
+    "category": "golang",
+    "text": "Goroutines are lightweight threads managed by the Go runtime for concurrency.",
+    "explain": "The scheduler multiplexes thousands of goroutines over a small worker pool, enabling scalable parallelism.",
+    "useCases": [
+      "Concurrent web servers",
+      "Background workers",
+      "Parallel processing"
+    ],
+    "tips": [
+      "Always exit goroutines cleanly",
+      "Use WaitGroups for coordination",
+      "Beware goroutine leaks"
+    ]
+  },
+  {
+    "title": "Channel Communication Patterns",
+    "category": "golang",
+    "text": "Channels synchronize goroutines and pass data without explicit locks.",
+    "explain": "Patterns like fan-out/fan-in or pipelines enable composable concurrent flows.",
+    "useCases": [
+      "Worker pools",
+      "Streaming transformations",
+      "Cancellation propagation"
+    ],
+    "tips": [
+      "Close channels to signal completion",
+      "Buffer channels to smooth bursts",
+      "Avoid channel per message anti-pattern"
+    ]
+  },
+  {
+    "title": "Context Propagation",
+    "category": "golang",
+    "text": "The context package carries deadlines, cancellations, and metadata through Go call chains.",
+    "explain": "Plumbing context avoids leaks and keeps observability consistent across goroutines.",
+    "useCases": [
+      "HTTP handlers",
+      "gRPC services",
+      "Background jobs"
+    ],
+    "tips": [
+      "Pass context as first parameter",
+      "Never store context in struct fields",
+      "Respect cancellation promptly"
+    ]
+  },
+  {
+    "title": "Go Error Handling",
+    "category": "golang",
+    "text": "Idiomatic Go handles errors explicitly and wraps them with context.",
+    "explain": "The errors package supports sentinel values, wrapping, and checking for richer diagnostics.",
+    "useCases": [
+      "Libraries",
+      "APIs",
+      "CLIs"
+    ],
+    "tips": [
+      "Use fmt.Errorf with %w",
+      "Return typed errors for branching",
+      "Avoid panic except program initialization"
+    ]
+  },
+  {
+    "title": "Testing with go test",
+    "category": "golang",
+    "text": "Go's testing package powers unit, integration, and benchmark tests.",
+    "explain": "Table-driven tests reduce repetition and make it easy to add cases quickly.",
+    "useCases": [
+      "Library validation",
+      "Regression coverage",
+      "Benchmarking performance"
+    ],
+    "tips": [
+      "Use t.Helper for shared helpers",
+      "Run go test -race in CI",
+      "Leverage testify or cmp for readability"
+    ]
+  },
+  {
+    "title": "Interfaces and Composition",
+    "category": "golang",
+    "text": "Small interfaces enable flexible composition without inheritance.",
+    "explain": "Implicit implementation lets mocks and real components satisfy contracts without extra boilerplate.",
+    "useCases": [
+      "Dependency injection",
+      "Plugin systems",
+      "Testing infrastructure"
+    ],
+    "tips": [
+      "Define interfaces near consumers",
+      "Prefer behavior over data sharing",
+      "Embed interfaces carefully"
+    ]
+  },
+  {
+    "title": "Go Modules Workflow",
+    "category": "golang",
+    "text": "Go modules manage dependencies with semantic versions and reproducible builds.",
+    "explain": "go.mod files track requirements while go.sum stores checksums for verification.",
+    "useCases": [
+      "Versioned libraries",
+      "Monorepos",
+      "Microservices"
+    ],
+    "tips": [
+      "Use go work for multi-module repos",
+      "Tag releases following semver",
+      "Vendoring only when environments demand"
+    ]
+  },
+  {
+    "title": "Go pprof Profiling",
+    "category": "golang",
+    "text": "pprof exposes CPU, heap, and goroutine profiles for running Go applications.",
+    "explain": "Profiling endpoints or dumps pinpoint resource hot spots during incidents or tuning sessions.",
+    "useCases": [
+      "Performance debugging",
+      "Capacity planning",
+      "Production incident triage"
+    ],
+    "tips": [
+      "Protect profiling endpoints with auth",
+      "Capture profiles under representative load",
+      "Visualize with go tool pprof -http"
+    ]
+  },
+  {
+    "title": "Go Generics Basics",
+    "category": "golang",
+    "text": "Generics let Go functions and types operate on parameterized types safely.",
+    "explain": "Type parameters and constraints reduce duplication while keeping compile-time safety.",
+    "useCases": [
+      "Collection helpers",
+      "Reusable algorithms",
+      "Strongly typed middleware"
+    ],
+    "tips": [
+      "Start with simple constraints",
+      "Avoid over-abstracting APIs",
+      "Benchmark before refactoring to generics"
+    ]
+  },
+  {
+    "title": "Building HTTP APIs in Go",
+    "category": "golang",
+    "text": "Go's net/http package offers a composable toolkit for RESTful APIs.",
+    "explain": "Handlers, middleware, and context integration give control over routing, timeouts, and observability.",
+    "useCases": [
+      "CRUD services",
+      "JSON APIs",
+      "Internal tooling"
+    ],
+    "tips": [
+      "Set server timeouts",
+      "Instrument handlers with middleware",
+      "Use httptrace for diagnostics"
+    ]
+  },
+  {
+    "title": "AWS IAM Fundamentals",
+    "category": "cloud",
+    "text": "AWS IAM manages identities, roles, and policies for least-privilege access.",
+    "explain": "Policies grant permissions to principals via roles; separating duties limits blast radius.",
+    "useCases": [
+      "Multi-account strategies",
+      "Secure CI deployments",
+      "Temporary credentials"
+    ],
+    "tips": [
+      "Use IAM Access Analyzer",
+      "Rotate access keys",
+      "Prefer roles over long-lived users"
+    ]
+  },
+  {
+    "title": "AWS VPC Design",
+    "category": "cloud",
+    "text": "Virtual Private Clouds define network boundaries with subnets, route tables, and gateways.",
+    "explain": "Separate public and private subnets, leverage security groups, and plan for multi-AZ resiliency.",
+    "useCases": [
+      "Hybrid cloud connectivity",
+      "Isolating workloads",
+      "Meeting compliance requirements"
+    ],
+    "tips": [
+      "Reserve CIDR blocks for future growth",
+      "Enable flow logs for troubleshooting",
+      "Use transit gateways for hub-and-spoke"
+    ]
+  },
+  {
+    "title": "S3 Data Management",
+    "category": "cloud",
+    "text": "Amazon S3 stores objects with durability, lifecycle rules, and event notifications.",
+    "explain": "Storage classes balance cost and access patterns while bucket policies control security.",
+    "useCases": [
+      "Static website hosting",
+      "Data lakes",
+      "Backup archives"
+    ],
+    "tips": [
+      "Enable bucket versioning",
+      "Use lifecycle transitions",
+      "Encrypt at rest with KMS"
+    ]
+  },
+  {
+    "title": "GCP Networking Basics",
+    "category": "cloud",
+    "text": "Google Cloud VPCs offer global networks with shared subnets across regions.",
+    "explain": "Firewall rules, routes, and peering control connectivity while IAM governs access.",
+    "useCases": [
+      "Hybrid connectivity",
+      "Multi-region services",
+      "Anthos or GKE networking"
+    ],
+    "tips": [
+      "Audit implied firewall rules",
+      "Use VPC Service Controls",
+      "Plan for hierarchical firewall policies"
+    ]
+  },
+  {
+    "title": "Azure Resource Organization",
+    "category": "cloud",
+    "text": "Azure resource groups, subscriptions, and management groups structure cloud assets.",
+    "explain": "RBAC, policies, and tags enforce governance while allowing team autonomy.",
+    "useCases": [
+      "Enterprise governance",
+      "Cost allocation",
+      "Separation of duties"
+    ],
+    "tips": [
+      "Apply Azure Policy at scale",
+      "Automate via Azure CLI or Bicep",
+      "Use blueprints for compliance"
+    ]
+  },
+  {
+    "title": "Cloud Cost Optimization",
+    "category": "cloud",
+    "text": "Optimize cloud spend by rightsizing resources, buying commitments, and eliminating waste.",
+    "explain": "Continuous cost visibility guides engineering tradeoffs without sacrificing performance.",
+    "useCases": [
+      "FinOps initiatives",
+      "Multi-team chargeback",
+      "Seasonal workloads"
+    ],
+    "tips": [
+      "Set budgets and alerts",
+      "Tag resources for owners",
+      "Turn off idle dev environments"
+    ]
+  },
+  {
+    "title": "Serverless Architectures",
+    "category": "cloud",
+    "text": "Serverless platforms execute code on demand with automatic scaling and per-request billing.",
+    "explain": "Design stateless functions, manage cold starts, and integrate with event-driven services.",
+    "useCases": [
+      "Event processing",
+      "APIs with spiky traffic",
+      "Automation tasks"
+    ],
+    "tips": [
+      "Bundle dependencies efficiently",
+      "Instrument cold start metrics",
+      "Guard external calls with timeouts"
+    ]
+  },
+  {
+    "title": "Multi-Region Resilience",
+    "category": "cloud",
+    "text": "Deploying across regions defends against localized outages and data loss.",
+    "explain": "Active-active or active-passive architectures replicate state and route traffic via DNS or global load balancers.",
+    "useCases": [
+      "Mission-critical services",
+      "Regulatory data residency",
+      "Disaster recovery"
+    ],
+    "tips": [
+      "Test regional failover regularly",
+      "Keep data replication consistent",
+      "Automate traffic routing changes"
+    ]
+  },
+  {
+    "title": "Docker Image Layers",
+    "category": "docker",
+    "text": "Docker images build from layered filesystem snapshots, enabling efficient caching and distribution.",
+    "explain": "Ordering instructions thoughtfully keeps frequently changing layers near the top and reduces rebuild time.",
+    "useCases": [
+      "CI pipelines",
+      "Base image hardening",
+      "Optimizing build times"
+    ],
+    "tips": [
+      "Pin base image digests",
+      "Clean package caches",
+      "Split dependencies and app code"
+    ]
+  },
+  {
+    "title": "Multi-Stage Docker Builds",
+    "category": "docker",
+    "text": "Multi-stage builds produce lean runtime images by separating build and run steps.",
+    "explain": "You compile in a builder stage, then copy artifacts into a minimal final image for security and speed.",
+    "useCases": [
+      "Go static binaries",
+      "Node.js frontends",
+      "Language runtimes with toolchains"
+    ],
+    "tips": [
+      "Use scratch or distroless bases",
+      "Share build cache via mounts",
+      "Parameterize stages with build args"
+    ]
+  },
+  {
+    "title": "Docker Networking Fundamentals",
+    "category": "docker",
+    "text": "Docker provides bridge, host, and overlay networks for container connectivity.",
+    "explain": "Understanding network modes and port mapping prevents conflicts and aids service discovery.",
+    "useCases": [
+      "Local development",
+      "Swarm clusters",
+      "Hybrid host setups"
+    ],
+    "tips": [
+      "Inspect networks with docker network ls",
+      "Use user-defined bridges for DNS",
+      "Document exposed ports"
+    ]
+  },
+  {
+    "title": "Docker Compose Orchestration",
+    "category": "docker",
+    "text": "Docker Compose defines multi-container applications with declarative YAML files.",
+    "explain": "Services, volumes, and networks spin up consistent dev environments with one command.",
+    "useCases": [
+      "Local microservice stacks",
+      "Integration testing",
+      "Demo environments"
+    ],
+    "tips": [
+      "Use profiles to toggle services",
+      "Keep env files versioned",
+      "Leverage depends_on for health checks"
+    ]
+  },
+  {
+    "title": "Linux File Permissions",
+    "category": "linux",
+    "text": "Linux file permissions control read, write, and execute bits for user, group, and others.",
+    "explain": "Understanding chmod, chown, and umask keeps systems secure and scripts functional.",
+    "useCases": [
+      "Securing deployments",
+      "Multi-user servers",
+      "Container volume mounts"
+    ],
+    "tips": [
+      "Prefer least-privilege defaults",
+      "Use ACLs for complex needs",
+      "Audit with find -perm"
+    ]
+  },
+  {
+    "title": "systemd Service Management",
+    "category": "linux",
+    "text": "systemd controls service lifecycles, dependencies, and logging on modern Linux distributions.",
+    "explain": "Unit files describe how services start, stop, and recover, replacing legacy init scripts.",
+    "useCases": [
+      "Running application daemons",
+      "Managing timers",
+      "Ensuring auto-restart"
+    ],
+    "tips": [
+      "Use journalctl for troubleshooting",
+      "Set Restart policies appropriately",
+      "Template unit files for variants"
+    ]
+  },
+  {
+    "title": "Linux Networking Tools",
+    "category": "linux",
+    "text": "Tools like curl, dig, ss, and tcpdump debug connectivity issues from the shell.",
+    "explain": "Combining traceroute, iproute2, and packet captures surfaces latency, DNS, and routing problems quickly.",
+    "useCases": [
+      "Incident response",
+      "Firewall validation",
+      "Performance troubleshooting"
+    ],
+    "tips": [
+      "Run tcpdump with capture filters",
+      "Use ip addr and ip route for clarity",
+      "Document known-good baselines"
+    ]
+  },
+  {
+    "title": "Process Monitoring on Linux",
+    "category": "linux",
+    "text": "Tools like top, htop, and pidstat reveal CPU, memory, and I/O characteristics of running processes.",
+    "explain": "Understanding load averages and cgroup limits helps tune containers and VMs.",
+    "useCases": [
+      "Resource contention",
+      "Capacity planning",
+      "Tuning cgroup quotas"
+    ],
+    "tips": [
+      "Watch per-core usage",
+      "Check zombie and blocked threads",
+      "Correlate with application logs"
+    ]
+  },
+  {
+    "title": "Shell Scripting Fundamentals",
+    "category": "linux",
+    "text": "Shell scripts automate tasks with pipelines, control flow, and command composition.",
+    "explain": "Using set -eu, quoting variables, and functions keeps scripts reliable and maintainable.",
+    "useCases": [
+      "CI jobs",
+      "Maintenance automation",
+      "Provisioning"
+    ],
+    "tips": [
+      "Use shellcheck for linting",
+      "Prefer explicit shebangs",
+      "Handle cleanup with traps"
+    ]
+  },
+  {
+    "title": "TLS Everywhere",
+    "category": "security",
+    "text": "Transport Layer Security encrypts data in transit to protect confidentiality and integrity.",
+    "explain": "Mutual TLS, certificate rotation, and modern ciphers reduce downgrade and interception risks.",
+    "useCases": [
+      "Public web traffic",
+      "Service-to-service auth",
+      "Regulated industries"
+    ],
+    "tips": [
+      "Automate certificate renewal",
+      "Use TLS 1.2+ only",
+      "Enable HSTS for web apps"
+    ]
+  },
+  {
+    "title": "Secrets Management",
+    "category": "security",
+    "text": "Centralized secrets management stores API keys, passwords, and certificates securely.",
+    "explain": "Vaults provide rotation, auditing, and dynamic secrets that expire automatically.",
+    "useCases": [
+      "Infrastructure automation",
+      "CI/CD pipelines",
+      "Database credential management"
+    ],
+    "tips": [
+      "Never bake secrets into images",
+      "Use short TTL credentials",
+      "Audit access logs regularly"
+    ]
+  },
+  {
+    "title": "Zero Trust Networking",
+    "category": "security",
+    "text": "Zero trust requires continuous verification of every request, regardless of network location.",
+    "explain": "Strong identity, device posture, and context-aware policies replace implicit perimeter trust.",
+    "useCases": [
+      "Remote workforces",
+      "Microservices",
+      "Cloud migrations"
+    ],
+    "tips": [
+      "Segment networks tightly",
+      "Integrate identity-aware proxies",
+      "Log and analyze access decisions"
+    ]
+  },
+  {
+    "title": "OWASP Top Ten Awareness",
+    "category": "security",
+    "text": "The OWASP Top Ten ranks the most critical web application security risks.",
+    "explain": "Understanding injection, broken auth, and security misconfiguration helps prioritize mitigations.",
+    "useCases": [
+      "Secure web development",
+      "Security training",
+      "Threat modeling"
+    ],
+    "tips": [
+      "Automate dependency scanning",
+      "Enforce input validation",
+      "Add security tests to CI"
+    ]
+  },
+  {
+    "title": "Threat Modeling Workshops",
+    "category": "security",
+    "text": "Threat modeling identifies attackers, assets, and controls before code ships.",
+    "explain": "Structured sessions with developers and security uncover design flaws early.",
+    "useCases": [
+      "New feature launches",
+      "Architecture reviews",
+      "Compliance engagements"
+    ],
+    "tips": [
+      "Document trust boundaries",
+      "Use STRIDE or PASTA frameworks",
+      "Track mitigations alongside stories"
+    ]
+  },
+  {
+    "title": "Kubernetes Security Posture",
+    "category": "security",
+    "text": "Securing Kubernetes involves hardening nodes, namespaces, and workloads.",
+    "explain": "Pod security standards, admission controls, and image scanning reduce runtime risk.",
+    "useCases": [
+      "Production clusters",
+      "Multi-tenant platforms",
+      "Regulated workloads"
+    ],
+    "tips": [
+      "Enforce pod security admission",
+      "Scan images in CI",
+      "Rotate cluster certificates"
+    ]
+  },
+  {
+    "title": "Test Pyramid",
+    "category": "testing",
+    "text": "The test pyramid emphasizes many fast unit tests, fewer integration tests, and minimal end-to-end UI tests.",
+    "explain": "Balancing layers keeps feedback fast while still covering cross-service behaviors.",
+    "useCases": [
+      "Microservice suites",
+      "Continuous delivery",
+      "Legacy modernization"
+    ],
+    "tips": [
+      "Stub external calls in unit tests",
+      "Run integration tests in parallel",
+      "Automate smoke tests for deploys"
+    ]
+  },
+  {
+    "title": "Property-Based Testing",
+    "category": "testing",
+    "text": "Property-based tests generate random cases to validate invariants beyond hand-written examples.",
+    "explain": "Libraries like quickcheck or fast-check uncover edge cases you would not think to write manually.",
+    "useCases": [
+      "Parsing logic",
+      "Math-heavy algorithms",
+      "Serialization formats"
+    ],
+    "tips": [
+      "Define meaningful properties",
+      "Shrink failing cases for debugging",
+      "Seed tests for reproducibility"
+    ]
+  },
+  {
+    "title": "Integration Testing in CI",
+    "category": "testing",
+    "text": "Integration tests validate interactions between components with realistic dependencies.",
+    "explain": "Containerized test environments spin up databases, queues, and services on demand for reliable pipelines.",
+    "useCases": [
+      "Service-to-service contracts",
+      "Database migrations",
+      "API compatibility"
+    ],
+    "tips": [
+      "Parallelize suites by domain",
+      "Seed fixtures deterministically",
+      "Collect logs for triage"
+    ]
+  },
+  {
+    "title": "Contract Testing",
+    "category": "testing",
+    "text": "Contract tests ensure service consumers and providers agree on payloads and behavior.",
+    "explain": "Tools like Pact detect breaking changes before they reach production.",
+    "useCases": [
+      "Microservices",
+      "Third-party integrations",
+      "Event-driven systems"
+    ],
+    "tips": [
+      "Version contracts in Git",
+      "Automate verification in CI",
+      "Include negative test cases"
+    ]
+  },
+  {
+    "title": "Chaos Testing",
+    "category": "testing",
+    "text": "Chaos tests inject faults during automated runs to validate resilience features.",
+    "explain": "Simulating pod kills, network latency, or dependency outages builds confidence in self-healing systems.",
+    "useCases": [
+      "Kubernetes workloads",
+      "Distributed databases",
+      "Critical backend services"
+    ],
+    "tips": [
+      "Start in staging with guardrails",
+      "Script rollback triggers",
+      "Log experiment metadata"
+    ]
+  },
+  {
+    "title": "Structured Logging",
+    "category": "observability",
+    "text": "Structured logs capture key-value context that machines can parse and correlate.",
+    "explain": "Consistent fields enable search, dashboards, and tracing integration across services.",
+    "useCases": [
+      "Incident debugging",
+      "Security audits",
+      "Analytics"
+    ],
+    "tips": [
+      "Include request and user IDs",
+      "Avoid logging secrets",
+      "Use log levels consistently"
+    ]
+  },
+  {
+    "title": "Metrics Instrumentation",
+    "category": "observability",
+    "text": "Metrics quantify system health through counters, gauges, and histograms.",
+    "explain": "RED (rate, errors, duration) and USE (utilization, saturation, errors) frameworks guide what to measure.",
+    "useCases": [
+      "Service level objectives",
+      "Capacity planning",
+      "Alerting"
+    ],
+    "tips": [
+      "Use consistent naming conventions",
+      "Export exemplars for tracing",
+      "Aggregate with Prometheus or OpenTelemetry"
+    ]
+  },
+  {
+    "title": "Alert Design",
+    "category": "observability",
+    "text": "Effective alerts are actionable, urgent, and routed to the right on-call engineer.",
+    "explain": "Tie alerts to SLOs and suppress noisy symptoms so humans respond only when necessary.",
+    "useCases": [
+      "Reducing alert fatigue",
+      "On-call rotations",
+      "Compliance monitoring"
+    ],
+    "tips": [
+      "Document runbook links",
+      "Pager alerts only for user impact",
+      "Review alert quality in retros"
+    ]
+  },
+  {
+    "title": "Distributed Tracing",
+    "category": "observability",
+    "text": "Tracing visualizes request flows across services with spans and timing information.",
+    "explain": "OpenTelemetry or Jaeger instrumentation highlights latency bottlenecks and root causes.",
+    "useCases": [
+      "Microservices troubleshooting",
+      "Performance regressions",
+      "Dependency mapping"
+    ],
+    "tips": [
+      "Propagate trace headers consistently",
+      "Sample intelligently to control cost",
+      "Annotate spans with business context"
+    ]
+  },
+  {
+    "title": "HTTP Evolution",
+    "category": "networking",
+    "text": "HTTP/2 multiplexes streams over a single connection, reducing head-of-line blocking compared to HTTP/1.1.",
+    "explain": "Binary framing, header compression, and server push improve latency when clients and servers support it.",
+    "useCases": [
+      "Modern web APIs",
+      "Mobile clients",
+      "gRPC transport"
+    ],
+    "tips": [
+      "Enable ALPN negotiation",
+      "Tune max concurrent streams",
+      "Fallback gracefully for legacy clients"
+    ]
+  },
+  {
+    "title": "DNS Fundamentals",
+    "category": "networking",
+    "text": "DNS resolves human-readable names to IP addresses through hierarchical name servers.",
+    "explain": "Caching, TTLs, and record types (A, AAAA, CNAME, TXT) underpin how clients find services.",
+    "useCases": [
+      "Global load balancing",
+      "Service discovery",
+      "Email authentication"
+    ],
+    "tips": [
+      "Keep TTLs balanced for agility",
+      "Monitor authoritative servers",
+      "Use DNSSEC for tamper protection"
+    ]
+  },
+  {
+    "title": "Load Balancing Algorithms",
+    "category": "networking",
+    "text": "Load balancers distribute traffic using algorithms like round robin, least connections, or weighted hashing.",
+    "explain": "Choosing the right policy ensures fairness, session affinity, or efficient cache usage.",
+    "useCases": [
+      "API gateways",
+      "Message queues",
+      "CDN edge networks"
+    ],
+    "tips": [
+      "Instrument backend health",
+      "Plan for connection draining",
+      "Scale horizontally when saturation appears"
+    ]
+  },
+  {
+    "title": "Code Review Culture",
+    "category": "teamwork",
+    "text": "Healthy code reviews focus on learning, correctness, and shared ownership, not gatekeeping.",
+    "explain": "Clear goals, respectful feedback, and lightweight checklists reduce cycle time and defects.",
+    "useCases": [
+      "Onboarding new hires",
+      "Knowledge sharing",
+      "Preventing regressions"
+    ],
+    "tips": [
+      "Discuss high-level design early",
+      "Automate style nitpicks",
+      "Rotate reviewers for cross-pollination"
+    ]
+  },
+  {
+    "title": "Technical Debt Management",
+    "category": "teamwork",
+    "text": "Managing technical debt balances short-term delivery with long-term velocity.",
+    "explain": "Tracking debt items, estimating impact, and scheduling paydown keeps systems maintainable.",
+    "useCases": [
+      "Sprint planning",
+      "Roadmap discussions",
+      "Postmortem follow-ups"
+    ],
+    "tips": [
+      "Quantify cost of delay",
+      "Bundle fixes with feature work",
+      "Celebrate debt paydown milestones"
+    ]
+  },
+  {
+    "title": "Data Pipeline Orchestration",
+    "category": "data-engineering",
+    "text": "Orchestration tools schedule, monitor, and retry data workflows end to end.",
+    "explain": "Systems like Airflow or Dagster manage dependencies and lineage across batch and streaming jobs.",
+    "useCases": [
+      "ETL pipelines",
+      "ML model training",
+      "Business reporting"
+    ],
+    "tips": [
+      "Version DAGs in Git",
+      "Isolate environments per stage",
+      "Alert on SLA breaches"
+    ]
+  },
+  {
+    "title": "Data Quality Checks",
+    "category": "data-engineering",
+    "text": "Automated data quality checks catch anomalies before they propagate downstream.",
+    "explain": "Validating schemas, ranges, and freshness keeps dashboards and ML models trustworthy.",
+    "useCases": [
+      "Financial reporting",
+      "Customer analytics",
+      "Operational metrics"
+    ],
+    "tips": [
+      "Treat checks as code",
+      "Quarantine bad data",
+      "Track data SLA compliance"
+    ]
+  },
+  {
+    "title": "Streaming vs Batch Tradeoffs",
+    "category": "data-engineering",
+    "text": "Choosing streaming or batch depends on latency needs, cost, and complexity.",
+    "explain": "Streams deliver near real-time insights but require operational maturity; batch is simpler for periodic aggregates.",
+    "useCases": [
+      "Fraud detection",
+      "Daily sales reporting",
+      "User activity feeds"
+    ],
+    "tips": [
+      "Prototype with batch first",
+      "Leverage managed stream services",
+      "Unify analytics layers where possible"
+    ]
+  },
+  {
+    "title": "Feature Toggles",
+    "category": "release-engineering",
+    "text": "Feature toggles decouple deployment from release by gating behavior behind runtime flags.",
+    "explain": "Flags allow gradual rollouts, experimentation, and instant rollback without redeploying.",
+    "useCases": [
+      "A/B testing",
+      "Dark launches",
+      "Emergency kill switches"
+    ],
+    "tips": [
+      "Retire stale flags",
+      "Store flag configuration centrally",
+      "Audit flag ownership"
+    ]
+  },
+  {
+    "title": "API Versioning Strategies",
+    "category": "api-design",
+    "text": "API versioning manages breaking changes while keeping clients functional.",
+    "explain": "Use semantic versioning, URL or header negotiation, and deprecation policies to guide migrations.",
+    "useCases": [
+      "Public REST APIs",
+      "Mobile clients",
+      "Partner integrations"
+    ],
+    "tips": [
+      "Communicate timelines clearly",
+      "Offer sandbox environments",
+      "Provide migration guides"
+    ]
+  },
+  {
+    "title": "GraphQL vs REST",
+    "category": "api-design",
+    "text": "GraphQL offers flexible querying while REST thrives on simple resource modeling.",
+    "explain": "Pick based on client needs, caching strategy, and operational expertise.",
+    "useCases": [
+      "Mobile apps needing tailored payloads",
+      "Public APIs with caching",
+      "Internal microservices"
+    ],
+    "tips": [
+      "Avoid over-fetching",
+      "Secure resolvers with depth limits",
+      "Document schemas rigorously"
+    ]
+  },
+  {
+    "title": "Designing gRPC APIs",
+    "category": "api-design",
+    "text": "gRPC uses Protocol Buffers and HTTP/2 for efficient service-to-service communication.",
+    "explain": "Contract-first development, streaming RPCs, and generated clients deliver performance and reliability.",
+    "useCases": [
+      "Low-latency microservices",
+      "Polyglot backends",
+      "Bi-directional streaming"
+    ],
+    "tips": [
+      "Version protobufs carefully",
+      "Use deadlines and retries",
+      "Expose reflection for tooling"
+    ]
+  },
+  {
+    "title": "Message Queue Semantics",
+    "category": "system-design",
+    "text": "Message queues decouple producers and consumers with at-least-once or exactly-once semantics.",
+    "explain": "Understanding ordering, delivery guarantees, and dead-letter queues keeps pipelines reliable.",
+    "useCases": [
+      "Background processing",
+      "Event-driven architectures",
+      "Retrying failed operations"
+    ],
+    "tips": [
+      "Idempotent consumer logic",
+      "Monitor queue depth",
+      "Expire poison messages"
+    ]
+  },
+  {
+    "title": "Event-Driven Architecture",
+    "category": "architecture",
+    "text": "Event-driven systems react to facts as they occur, enabling loosely coupled services.",
+    "explain": "Producers emit events, consumers subscribe, and event logs provide auditability and replay.",
+    "useCases": [
+      "Real-time analytics",
+      "E-commerce inventory",
+      "Workflow automation"
+    ],
+    "tips": [
+      "Define clear event schemas",
+      "Version events backward-compatibly",
+      "Monitor fan-out latencies"
+    ]
+  },
+  {
+    "title": "Disaster Recovery Planning",
+    "category": "reliability",
+    "text": "Disaster recovery prepares systems and teams to recover from catastrophic failures.",
+    "explain": "Define RTO/RPO targets, backup strategies, and failover drills to maintain business continuity.",
+    "useCases": [
+      "Regulated industries",
+      "Mission-critical services",
+      "Data center dependencies"
+    ],
+    "tips": [
+      "Test restores regularly",
+      "Automate backup verification",
+      "Keep runbooks off the impacted environment"
+    ]
+  },
+  {
+    "title": "Observability Dashboards",
+    "category": "observability",
+    "text": "Curated dashboards visualize golden signals and business KPIs for rapid situational awareness.",
+    "explain": "Thoughtful layout and sparing use of color help responders spot anomalies quickly.",
+    "useCases": [
+      "NOC monitoring",
+      "Executive reporting",
+      "On-call handoffs"
+    ],
+    "tips": [
+      "Group panels by user journey",
+      "Annotate deploys and incidents",
+      "Review dashboards during incidents"
+    ]
+  },
+  {
+    "title": "Edge Caching with CDNs",
+    "category": "performance",
+    "text": "Content Delivery Networks cache assets close to users to cut latency and absorb traffic spikes.",
+    "explain": "Cache keys, TTLs, and invalidation policies determine freshness and hit ratios across regions.",
+    "useCases": [
+      "Static websites",
+      "Video streaming",
+      "API acceleration"
+    ],
+    "tips": [
+      "Purge selectively not globally",
+      "Secure origins with allowlists",
+      "Monitor cache hit rates"
+    ]
+  },
+  {
+    "title": "Distributed Locks",
+    "category": "system-design",
+    "text": "Distributed locks coordinate access to shared resources across processes or nodes.",
+    "explain": "Use consensus-backed stores or fencing tokens to avoid split-brain and stale lock holders.",
+    "useCases": [
+      "Singleton job execution",
+      "Inventory reservation",
+      "Leader election"
+    ],
+    "tips": [
+      "Set lock expirations",
+      "Validate fencing tokens",
+      "Monitor lock contention"
+    ]
+  },
+  {
+    "title": "Secrets Rotation",
+    "category": "security",
+    "text": "Regularly rotating secrets limits the window of compromise if credentials leak.",
+    "explain": "Automated rotation updates applications, revokes old credentials, and validates new ones transparently.",
+    "useCases": [
+      "Database passwords",
+      "API tokens",
+      "TLS certificates"
+    ],
+    "tips": [
+      "Design apps for dynamic reload",
+      "Audit rotation failures",
+      "Use just-in-time credentials where possible"
+    ]
+  },
+  {
+    "title": "Kubernetes Cluster Upgrades",
+    "category": "kubernetes",
+    "text": "Regular cluster upgrades deliver security patches and new features without disrupting workloads.",
+    "explain": "Plan control plane upgrades, drain nodes gracefully, and validate workloads after rolling worker nodes.",
+    "useCases": [
+      "Managed service maintenance",
+      "Self-managed clusters",
+      "Compliance patching"
+    ],
+    "tips": [
+      "Test in staging first",
+      "Use surge upgrades when possible",
+      "Backup etcd before starting"
+    ]
+  },
+  {
+    "title": "Go Worker Pool Pattern",
+    "category": "golang",
+    "text": "Worker pools limit concurrency while processing jobs efficiently in Go.",
+    "explain": "A fixed number of workers pull tasks from a channel, preventing resource exhaustion under load.",
+    "useCases": [
+      "Rate-limited APIs",
+      "Background processing",
+      "Batch ingestion"
+    ],
+    "tips": [
+      "Tune pool size from metrics",
+      "Propagate context cancellation",
+      "Handle backpressure gracefully"
+    ]
+  },
+  {
+    "title": "Feature Flag Governance",
+    "category": "release-engineering",
+    "text": "Governance processes keep feature flags from accumulating risk over time.",
+    "explain": "Track owners, lifespans, and cleanup to avoid flag debt and unexpected interactions.",
+    "useCases": [
+      "Large-scale experimentation",
+      "Regulated releases",
+      "Cross-team platforms"
+    ],
+    "tips": [
+      "Document flag purpose",
+      "Set auto-expiry reminders",
+      "Review flags in sprint retros"
+    ]
+  },
+  {
+    "title": "API Gateway Patterns",
+    "category": "system-design",
+    "text": "API gateways centralize cross-cutting concerns like authentication, rate limiting, and routing.",
+    "explain": "They shield backend services while providing analytics, caching, and protocol translation.",
+    "useCases": [
+      "Public API management",
+      "Mobile backends",
+      "Legacy modernization"
+    ],
+    "tips": [
+      "Avoid business logic in gateways",
+      "Deploy multiple gateways for isolation",
+      "Log request IDs for correlation"
+    ]
+  },
+  {
+    "title": "Temporal Workflow Orchestration",
+    "category": "architecture",
+    "text": "Temporal runs durable workflows with retries, timers, and state persistence.",
+    "explain": "Code workflows in your language while Temporal ensures steps resume after failures or restarts.",
+    "useCases": [
+      "Payment processing",
+      "User onboarding",
+      "Long-running provisioning"
+    ],
+    "tips": [
+      "Set activity timeouts",
+      "Version workflows carefully",
+      "Monitor task queue latency"
+    ]
+  },
+  {
+    "title": "Edge Authentication",
+    "category": "security",
+    "text": "Edge authentication validates users at the CDN or gateway before traffic enters the core.",
+    "explain": "JWT validation, WAF rules, and bot management at the perimeter cut load on origin servers.",
+    "useCases": [
+      "High-traffic web apps",
+      "APIs with global audiences",
+      "Defense against DDoS"
+    ],
+    "tips": [
+      "Sync keys to edge nodes securely",
+      "Log and analyze rejected requests",
+      "Pair with rate limiting"
+    ]
+  },
+  {
+    "title": "Observability as Code",
+    "category": "observability",
+    "text": "Observability as code stores dashboards, alerts, and monitors in version control.",
+    "explain": "Declarative configs keep environments consistent and reviewable alongside application changes.",
+    "useCases": [
+      "Multi-team SRE",
+      "Regulated environments",
+      "Disaster recovery"
+    ],
+    "tips": [
+      "Review observability PRs like code",
+      "Tag monitors with owners",
+      "Test rules in staging"
+    ]
+  },
+  {
+    "title": "Standard Conventions First",
+    "category": "clean-code",
+    "text": "Following agreed conventions keeps the codebase predictable for every collaborator.",
+    "explain": "When syntax, formatting, and architectural patterns follow shared guides, cognitive load drops and onboarding accelerates.",
+    "useCases": [
+      "Team style guides",
+      "Framework idioms",
+      "Multi-language codebases"
+    ],
+    "tips": [
+      "Automate linting in CI",
+      "Document deviations with rationale",
+      "Review pull requests for convention drift"
+    ]
+  },
+  {
+    "title": "Simplify Before Optimizing",
+    "category": "clean-code",
+    "text": "The simplest design that works is usually the most maintainable.",
+    "explain": "Simpler solutions reduce hidden dependencies, make tests easier to write, and lower the cost of future change.",
+    "useCases": [
+      "Refactoring legacy modules",
+      "Designing new features",
+      "Choosing between libraries"
+    ],
+    "tips": [
+      "Challenge clever abstractions",
+      "Remove unused extensibility",
+      "Prefer readable algorithms over premature micro-optimizations"
+    ]
+  },
+  {
+    "title": "Boy Scout Rule Habit",
+    "category": "clean-code",
+    "text": "Always leave the codebase cleaner than you found it.",
+    "explain": "Incremental improvements compound: fixing a naming issue or adding a missing test while you are nearby prevents future defects.",
+    "useCases": [
+      "Touching old modules",
+      "Reviewing small bug fixes",
+      "Reducing tech debt opportunistically"
+    ],
+    "tips": [
+      "Keep improvements scoped",
+      "Record debt tickets when work is too large",
+      "Share before/after context in pull requests"
+    ]
+  },
+  {
+    "title": "Root Cause Analysis Mindset",
+    "category": "clean-code",
+    "text": "Fixing symptoms without finding the root cause guarantees repeat incidents.",
+    "explain": "Effective engineers trace bugs to the underlying assumption breakdown and reinforce safeguards there.",
+    "useCases": [
+      "Production incidents",
+      "Intermittent test failures",
+      "Performance regressions"
+    ],
+    "tips": [
+      "Use 5-Whys to dig deeper",
+      "Capture root cause in postmortems",
+      "Automate detection for future occurrences"
+    ]
+  },
+  {
+    "title": "Configuration at the Edges",
+    "category": "architecture",
+    "text": "Keep configuration data close to system boundaries so the core stays focused on behavior.",
+    "explain": "Centralizing configuration in high-level modules avoids scattering flags through the domain and simplifies testing.",
+    "useCases": [
+      "Environment-specific settings",
+      "Feature flags",
+      "Third-party credentials"
+    ],
+    "tips": [
+      "Load config once and inject downward",
+      "Validate configuration on boot",
+      "Prefer typed config structs to raw maps"
+    ]
+  },
+  {
+    "title": "Polymorphism Beats Conditionals",
+    "category": "architecture",
+    "text": "Replacing sprawling conditionals with polymorphism keeps behaviors open for extension but closed for modification.",
+    "explain": "Strategy objects or interface implementations localize variant logic and prevent cascade edits when new cases arrive.",
+    "useCases": [
+      "Payment processors",
+      "Parsing multiple file formats",
+      "Handling feature-specific workflows"
+    ],
+    "tips": [
+      "Identify seams where behavior varies",
+      "Express contracts with small interfaces",
+      "Register implementations via dependency injection"
+    ]
+  },
+  {
+    "title": "Isolate Concurrency Boundaries",
+    "category": "architecture",
+    "text": "Separating concurrent code from business logic prevents subtle race bugs.",
+    "explain": "Wrapping concurrency behind clear APIs lets you reason about correctness without juggling synchronization everywhere.",
+    "useCases": [
+      "Worker pool coordination",
+      "Async message handling",
+      "Shared state management"
+    ],
+    "tips": [
+      "Expose thread-safe interfaces only",
+      "Keep synchronization localized",
+      "Document ordering guarantees"
+    ]
+  },
+  {
+    "title": "Avoid Over-Configurability",
+    "category": "architecture",
+    "text": "Too many knobs create fragile systems that no one understands.",
+    "explain": "Every configuration option increases testing matrix size and operational risk, so default to opinionated choices.",
+    "useCases": [
+      "Platform services",
+      "Reusable libraries",
+      "UI feature toggles"
+    ],
+    "tips": [
+      "Remove unused options",
+      "Document intent for remaining flags",
+      "Prefer code changes over runtime switches for rare cases"
+    ]
+  },
+  {
+    "title": "Dependency Injection Discipline",
+    "category": "architecture",
+    "text": "Explicitly passing dependencies makes components testable and replaceable.",
+    "explain": "Constructor injection decouples modules from concrete implementations and clarifies what each piece needs.",
+    "useCases": [
+      "HTTP handlers",
+      "Background jobs",
+      "SDK clients"
+    ],
+    "tips": [
+      "Inject interfaces not concrete types",
+      "Avoid service locators",
+      "Use starter wiring modules to compose graphs"
+    ]
+  },
+  {
+    "title": "Law of Demeter in Practice",
+    "category": "architecture",
+    "text": "Talk only to your immediate collaborators, not their collaborators.",
+    "explain": "Chaining through multiple objects couples modules tightly and breaks when intermediaries change.",
+    "useCases": [
+      "Domain aggregates",
+      "Service orchestrators",
+      "UI view models"
+    ],
+    "tips": [
+      "Ask collaborators for what you need",
+      "Wrap navigation in helper methods",
+      "Use facade objects to simplify deep graphs"
+    ]
+  },
+  {
+    "title": "Consistency as Communication",
+    "category": "clean-code",
+    "text": "Consistent patterns signal intent faster than comments.",
+    "explain": "When similar problems share structure, the reader understands behavior without hunting for exceptions.",
+    "useCases": [
+      "Module organization",
+      "API handlers",
+      "Database repositories"
+    ],
+    "tips": [
+      "Adopt templates for common flows",
+      "Refactor outliers toward existing patterns",
+      "Capture conventions in contribution guides"
+    ]
+  },
+  {
+    "title": "Explain Intent with Variables",
+    "category": "clean-code",
+    "text": "Intermediate variables clarify what complex expressions mean.",
+    "explain": "Giving names to sub-expressions communicates business concepts and simplifies debugging.",
+    "useCases": [
+      "Complicated conditionals",
+      "Mathematical formulas",
+      "Parsing data structures"
+    ],
+    "tips": [
+      "Prefer nouns that reflect domain terms",
+      "Avoid reusing variables for new meanings",
+      "Inline trivial aliases to balance clarity"
+    ]
+  },
+  {
+    "title": "Encapsulate Boundary Conditions",
+    "category": "clean-code",
+    "text": "Centralizing edge-case handling prevents bugs from resurfacing.",
+    "explain": "When limits and special rules live in one function, the rest of the code can assume normal behavior.",
+    "useCases": [
+      "Pagination limits",
+      "Date range validation",
+      "Numeric overflow checks"
+    ],
+    "tips": [
+      "Name functions after the boundary they enforce",
+      "Add tests for min/max inputs",
+      "Return explicit error types when boundaries fail"
+    ]
+  },
+  {
+    "title": "Prefer Value Objects",
+    "category": "clean-code",
+    "text": "Wrapping primitives into value objects encodes invariants in one place.",
+    "explain": "Dedicated types guard against mixing units and give you methods tailored to the domain concept.",
+    "useCases": [
+      "Money calculations",
+      "Email addresses",
+      "Pagination ranges"
+    ],
+    "tips": [
+      "Keep value objects immutable",
+      "Validate in constructors",
+      "Document formatting helpers"
+    ]
+  },
+  {
+    "title": "Eliminate Logical Dependencies",
+    "category": "clean-code",
+    "text": "Functions should not rely on undocumented ordering or state set elsewhere in the class.",
+    "explain": "Hidden dependencies make refactoring risky and break when someone reuses the function in a new context.",
+    "useCases": [
+      "Setup-heavy services",
+      "Lifecycle hooks",
+      "Utility helpers"
+    ],
+    "tips": [
+      "Require needed data via parameters",
+      "Assert preconditions explicitly",
+      "Split responsibilities across types"
+    ]
+  },
+  {
+    "title": "Avoid Negative Conditionals",
+    "category": "clean-code",
+    "text": "Positive conditions read faster and reduce mental double-negatives.",
+    "explain": "Readers process affirmative logic more easily, so invert guard clauses to state what you expect.",
+    "useCases": [
+      "Guard clauses",
+      "Validation checks",
+      "Template rendering"
+    ],
+    "tips": [
+      "Extract positive helper predicates",
+      "Return early on failure",
+      "Name booleans positively"
+    ]
+  },
+  {
+    "title": "Descriptive Naming Patterns",
+    "category": "clean-code",
+    "text": "Names should reveal intent without needing comments.",
+    "explain": "Choosing precise words turns code into executable documentation and lowers onboarding time.",
+    "useCases": [
+      "Public APIs",
+      "Domain models",
+      "Test cases"
+    ],
+    "tips": [
+      "Favor nouns for objects and verbs for actions",
+      "Avoid abbreviations unless ubiquitous",
+      "Rename aggressively during refactors"
+    ]
+  },
+  {
+    "title": "Meaningful Name Distinctions",
+    "category": "clean-code",
+    "text": "Similar names should differ because behavior differs, not because you added numbers or letters.",
+    "explain": "Adding suffixes like Data1/Data2 hides the real concept difference, making bugs harder to spot.",
+    "useCases": [
+      "DTO vs entity separation",
+      "Cache vs source data",
+      "State transitions"
+    ],
+    "tips": [
+      "Rename to reflect lifecycle stage",
+      "Highlight units or context",
+      "Delete redundant aliases"
+    ]
+  },
+  {
+    "title": "Pronounceable Identifiers",
+    "category": "clean-code",
+    "text": "If you can say a name out loud, you can discuss it in design reviews.",
+    "explain": "Readable identifiers foster collaboration and make code search easier during pairing sessions.",
+    "useCases": [
+      "Domain-heavy code",
+      "Cross-team collaboration",
+      "On-call triage"
+    ],
+    "tips": [
+      "Spell out acronyms",
+      "Use consistent casing",
+      "Align code names with documentation"
+    ]
+  },
+  {
+    "title": "Searchable Identifiers",
+    "category": "clean-code",
+    "text": "Unique names make grepping for behavior straightforward.",
+    "explain": "Short, common words hide among other references, so prefer names that are easy to search and replace safely.",
+    "useCases": [
+      "Large codebases",
+      "Debugging incidents",
+      "Refactoring sweeping changes"
+    ],
+    "tips": [
+      "Avoid single-letter globals",
+      "Use consistent prefixes for related modules",
+      "Leverage IDE symbol search"
+    ]
+  },
+  {
+    "title": "Replace Magic Numbers",
+    "category": "clean-code",
+    "text": "Named constants explain why a specific value matters.",
+    "explain": "Magic numbers hide intent and make it easy to copy the wrong value elsewhere.",
+    "useCases": [
+      "Retry limits",
+      "Timeouts",
+      "Domain thresholds"
+    ],
+    "tips": [
+      "Group constants by domain",
+      "Document units in the name",
+      "Use enums for related sets"
+    ]
+  },
+  {
+    "title": "Avoid Encoded Names",
+    "category": "clean-code",
+    "text": "Modern languages make Hungarian notation obsolete.",
+    "explain": "Prefixing types or scopes into names creates churn during refactors and distracts from meaning.",
+    "useCases": [
+      "UI element naming",
+      "Legacy modernization",
+      "Strongly typed languages"
+    ],
+    "tips": [
+      "Trust the type system",
+      "Use descriptive namespaces",
+      "Leverage tooling for type hints"
+    ]
+  },
+  {
+    "title": "Small Focused Functions",
+    "category": "clean-code",
+    "text": "Functions should fit on a screen and tell a single story.",
+    "explain": "Smaller functions isolate responsibilities, making it easier to test and reuse behavior.",
+    "useCases": [
+      "Refactoring long controllers",
+      "Data processing pipelines",
+      "Complex business rules"
+    ],
+    "tips": [
+      "Extract helpers when branching",
+      "Name functions after the work they do",
+      "Track cyclomatic complexity metrics"
+    ]
+  },
+  {
+    "title": "Minimize Function Arguments",
+    "category": "clean-code",
+    "text": "Fewer parameters reduce cognitive load and encourage cohesive types.",
+    "explain": "When a function needs many parameters, it's usually doing too much or lacks an aggregate type.",
+    "useCases": [
+      "Service facades",
+      "Utility helpers",
+      "Public SDKs"
+    ],
+    "tips": [
+      "Group related arguments into value objects",
+      "Use builder patterns for optional inputs",
+      "Document parameter meaning clearly"
+    ]
+  },
+  {
+    "title": "Control Function Side Effects",
+    "category": "clean-code",
+    "text": "Functions that unexpectedly mutate state erode trust in the codebase.",
+    "explain": "Clear contracts about side effects make testing easier and prevent hidden coupling.",
+    "useCases": [
+      "Repository updates",
+      "Caching layers",
+      "Notification senders"
+    ],
+    "tips": [
+      "Return new values instead of mutating",
+      "Document unavoidable side effects",
+      "Separate read and write paths"
+    ]
+  },
+  {
+    "title": "Eliminate Flag Parameters",
+    "category": "clean-code",
+    "text": "Boolean flags hint that a function is doing more than one job.",
+    "explain": "Splitting the function by intent produces clearer APIs and reduces test permutations.",
+    "useCases": [
+      "Rendering variations",
+      "Feature toggles",
+      "Export utilities"
+    ],
+    "tips": [
+      "Extract distinct functions",
+      "Move branching to the caller",
+      "Replace with strategy objects when behavior varies"
+    ]
+  },
+  {
+    "title": "Explain Intent with Comments",
+    "category": "clean-code",
+    "text": "Use comments to capture why a decision exists when code alone is insufficient.",
+    "explain": "Intent-focused comments survive refactors because they document context, not implementation.",
+    "useCases": [
+      "Workarounds for external bugs",
+      "Complex mathematical derivations",
+      "Security-critical logic"
+    ],
+    "tips": [
+      "Link to supporting documents",
+      "Keep comments up to date",
+      "Highlight assumptions explicitly"
+    ]
+  },
+  {
+    "title": "Avoid Comment Noise",
+    "category": "clean-code",
+    "text": "Redundant comments clutter files and quickly fall out of sync.",
+    "explain": "Comments that restate obvious logic distract readers from the meaningful notes they actually need.",
+    "useCases": [
+      "Auto-generated documentation",
+      "Refactoring old code",
+      "Code reviews"
+    ],
+    "tips": [
+      "Delete comments that duplicate code",
+      "Prefer expressive names over narration",
+      "Flag TODOs for later cleanup"
+    ]
+  },
+  {
+    "title": "Structure Code Vertically",
+    "category": "clean-code",
+    "text": "Arrange code so related ideas sit close together from top to bottom.",
+    "explain": "Vertical ordering mirrors the narrative of how a reader learns the file, reducing jumping around.",
+    "useCases": [
+      "Controller classes",
+      "Service modules",
+      "Long utility files"
+    ],
+    "tips": [
+      "Group public API first, helpers later",
+      "Separate unrelated sections with whitespace",
+      "Keep file navigation consistent"
+    ]
+  },
+  {
+    "title": "Group Related Code",
+    "category": "clean-code",
+    "text": "Functions that collaborate should live near each other.",
+    "explain": "Proximity reinforces conceptual grouping and makes maintenance faster.",
+    "useCases": [
+      "Model methods",
+      "Service orchestrations",
+      "Utility modules"
+    ],
+    "tips": [
+      "Order functions by call graph",
+      "Use region markers sparingly",
+      "Split files when groups grow too large"
+    ]
+  },
+  {
+    "title": "Declare Variables Nearby",
+    "category": "clean-code",
+    "text": "Variables should be declared close to where they're used.",
+    "explain": "Local declarations reduce scrolling and prevent accidental reuse in distant scopes.",
+    "useCases": [
+      "Loop counters",
+      "Temporary buffers",
+      "Dependency lookups"
+    ],
+    "tips": [
+      "Limit variable scope",
+      "Inline values when usage is trivial",
+      "Avoid reassigning across large blocks"
+    ]
+  },
+  {
+    "title": "Guide Flow Downward",
+    "category": "clean-code",
+    "text": "Readers should discover helper functions as they progress downward through the file.",
+    "explain": "Placing high-level workflows above supporting details mirrors top-down comprehension.",
+    "useCases": [
+      "React components",
+      "Service classes",
+      "Command handlers"
+    ],
+    "tips": [
+      "Export main entry points first",
+      "Move generic helpers to separate modules",
+      "Avoid forward declarations when possible"
+    ]
+  },
+  {
+    "title": "Whitespace for Clarity",
+    "category": "clean-code",
+    "text": "Whitespace separates concepts and highlights logical blocks.",
+    "explain": "Thoughtful spacing makes differences pop in reviews and guides a reader's eye.",
+    "useCases": [
+      "Control flow blocks",
+      "Groupings of declarations",
+      "Complex expressions"
+    ],
+    "tips": [
+      "Insert blank lines between unrelated statements",
+      "Align indentation with scope",
+      "Avoid excessive vertical padding"
+    ]
+  },
+  {
+    "title": "Hide Internal Structure",
+    "category": "architecture",
+    "text": "APIs should reveal behavior, not internal representation.",
+    "explain": "Encapsulation lets you change private fields or storage without breaking consumers.",
+    "useCases": [
+      "Domain aggregates",
+      "Repositories",
+      "SDK clients"
+    ],
+    "tips": [
+      "Expose intent-driven methods",
+      "Return copies, not references",
+      "Avoid leaking ORM entities"
+    ]
+  },
+  {
+    "title": "Prefer Plain Data Structures",
+    "category": "architecture",
+    "text": "Simple data carriers keep domain logic in the right place.",
+    "explain": "Data structures should store state; objects should enforce invariants and behavior.",
+    "useCases": [
+      "DTOs",
+      "API payloads",
+      "Serialization layers"
+    ],
+    "tips": [
+      "Avoid setter-heavy anemic objects",
+      "Document schema evolution",
+      "Keep mapping code isolated"
+    ]
+  },
+  {
+    "title": "Keep Objects Focused",
+    "category": "architecture",
+    "text": "Objects with too many responsibilities become untestable and brittle.",
+    "explain": "Limiting instance variables and behaviors clarifies purpose and enforces cohesion.",
+    "useCases": [
+      "Service classes",
+      "Controllers",
+      "Domain entities"
+    ],
+    "tips": [
+      "Split classes when fields cluster",
+      "Use composition over giant inheritance",
+      "Measure class size metrics"
+    ]
+  },
+  {
+    "title": "Small Instance Footprints",
+    "category": "architecture",
+    "text": "The number of instance variables should stay minimal to reduce coupling.",
+    "explain": "Every field represents a dependency or responsibility; too many signals a need to decompose.",
+    "useCases": [
+      "Legacy god objects",
+      "Service refactors",
+      "Complex view models"
+    ],
+    "tips": [
+      "Extract helper objects",
+      "Inject collaborators instead of instantiating",
+      "Monitor field growth in reviews"
+    ]
+  },
+  {
+    "title": "Inheritance with Restraint",
+    "category": "architecture",
+    "text": "Base classes should not depend on knowledge of their subclasses.",
+    "explain": "When parents expect child behavior, you invert the relationship and create fragile hierarchies.",
+    "useCases": [
+      "Framework extensions",
+      "UI component libraries",
+      "Plugin systems"
+    ],
+    "tips": [
+      "Favor composition for shared code",
+      "Keep base class contracts narrow",
+      "Document extension points"
+    ]
+  },
+  {
+    "title": "Prefer Explicit Strategies",
+    "category": "architecture",
+    "text": "Passing lambdas to alter behavior can obscure control flow; explicit strategy objects clarify intent.",
+    "explain": "Named types with well-defined methods are easier to test and reuse than ad-hoc callbacks.",
+    "useCases": [
+      "Formatting rules",
+      "Scheduling policies",
+      "Feature switches"
+    ],
+    "tips": [
+      "Elevate important callbacks into interfaces",
+      "Name strategies after business rules",
+      "Pass strategies through dependency injection"
+    ]
+  },
+  {
+    "title": "Single Assertion Tests",
+    "category": "testing",
+    "text": "One assertion per test keeps failures focused on a single behavior.",
+    "explain": "When a test validates multiple concerns, one failure can hide others and complicate debugging.",
+    "useCases": [
+      "Unit tests",
+      "Regression suites",
+      "Property-based testing wrappers"
+    ],
+    "tips": [
+      "Name tests after expected outcome",
+      "Use helper methods for setup",
+      "Split tests when asserting multiple concepts"
+    ]
+  },
+  {
+    "title": "Readable Test Cases",
+    "category": "testing",
+    "text": "Tests should narrate Arrange-Act-Assert clearly.",
+    "explain": "Readability ensures failing tests act as documentation for intended behavior.",
+    "useCases": [
+      "Integration suites",
+      "Contract tests",
+      "Legacy regression coverage"
+    ],
+    "tips": [
+      "Use descriptive helper names",
+      "Separate setup from expectations",
+      "Avoid duplication with builders"
+    ]
+  },
+  {
+    "title": "Fast Feedback Tests",
+    "category": "testing",
+    "text": "Fast tests encourage developers to run them often.",
+    "explain": "Slow feedback loops discourage quality practices and let defects slip into production.",
+    "useCases": [
+      "Continuous integration",
+      "Pre-commit hooks",
+      "Local development"
+    ],
+    "tips": [
+      "Mock slow dependencies",
+      "Parallelize suites where possible",
+      "Measure and budget test runtime"
+    ]
+  },
+  {
+    "title": "Independent Test Design",
+    "category": "testing",
+    "text": "Tests must not depend on each other's order or shared state.",
+    "explain": "Isolation ensures a failure reveals the true culprit and parallel execution stays safe.",
+    "useCases": [
+      "Microservice test suites",
+      "Database-backed tests",
+      "UI automation"
+    ],
+    "tips": [
+      "Reset fixtures between tests",
+      "Avoid reliance on global state",
+      "Randomize test order in CI"
+    ]
+  },
+  {
+    "title": "Repeatable Test Environments",
+    "category": "testing",
+    "text": "Repeatable tests produce the same outcome regardless of when or where they run.",
+    "explain": "Deterministic results build confidence and simplify root cause analysis when failures occur.",
+    "useCases": [
+      "Nightly regression suites",
+      "Smoke tests",
+      "Cross-team shared pipelines"
+    ],
+    "tips": [
+      "Control randomness with seeds",
+      "Record and replay external calls",
+      "Provision isolated infrastructure for each run"
+    ]
+  },
+  {
+    "title": "Fight Rigidity",
+    "category": "clean-code",
+    "text": "Design for change so small tweaks do not require rewrites.",
+    "explain": "Rigid systems violate the open/closed principle and slow delivery as every adjustment ripples outward.",
+    "useCases": [
+      "Monolithic legacy apps",
+      "Rapidly evolving products",
+      "Customization-heavy platforms"
+    ],
+    "tips": [
+      "Refactor toward interfaces",
+      "Modularize code by feature",
+      "Automate regression tests before big changes"
+    ]
+  },
+  {
+    "title": "Avoid Fragility",
+    "category": "clean-code",
+    "text": "Fragile code breaks in unexpected places when touched.",
+    "explain": "Hidden dependencies and shared mutable state create domino effects of bugs.",
+    "useCases": [
+      "Global state management",
+      "UI frameworks",
+      "Complex build scripts"
+    ],
+    "tips": [
+      "Introduce integration tests for critical paths",
+      "Decouple modules with clear contracts",
+      "Document implicit dependencies"
+    ]
+  },
+  {
+    "title": "Reduce Immobility",
+    "category": "clean-code",
+    "text": "Components should be reusable without carrying the entire application along.",
+    "explain": "Tight coupling and lack of boundaries prevent code from being shared across contexts.",
+    "useCases": [
+      "Internal libraries",
+      "Shared services",
+      "Open-source extraction"
+    ],
+    "tips": [
+      "Split generic code into packages",
+      "Remove environment-specific assumptions",
+      "Publish clear public APIs"
+    ]
+  },
+  {
+    "title": "Eliminate Needless Complexity",
+    "category": "clean-code",
+    "text": "Avoid features, abstractions, or layers you don't need yet.",
+    "explain": "Extra moving parts breed bugs and make knowledge transfer harder.",
+    "useCases": [
+      "Initial project scaffolding",
+      "Refactoring incidents",
+      "Framework selection"
+    ],
+    "tips": [
+      "Defer optional extension points",
+      "Measure complexity using maintainability metrics",
+      "Prefer straightforward data flows"
+    ]
+  },
+  {
+    "title": "Remove Needless Repetition",
+    "category": "clean-code",
+    "text": "Duplicate logic drifts out of sync and multiplies bug fixes.",
+    "explain": "Applying the DRY principle focuses change to one location and reduces maintenance effort.",
+    "useCases": [
+      "Validation rules",
+      "API response mappers",
+      "UI components"
+    ],
+    "tips": [
+      "Extract common helpers",
+      "Adopt shared libraries",
+      "Refactor copy-paste code during reviews"
+    ]
+  },
+  {
+    "title": "Increase Code Transparency",
+    "category": "clean-code",
+    "text": "Opaque code hides intent and slows every future change.",
+    "explain": "Readable, well-structured code allows engineers to predict consequences before modifying it.",
+    "useCases": [
+      "Security-sensitive modules",
+      "High-change services",
+      "Cross-team ownership areas"
+    ],
+    "tips": [
+      "Explain complex decisions in ADRs",
+      "Prefer expressive constructs over clever tricks",
+      "Use code reviews to surface confusing areas"
     ]
   }
 ]
