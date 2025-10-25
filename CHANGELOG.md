@@ -10,4 +10,4 @@
 - Updated frontend/backend lesson selection logic to respect session history and lower repetition.
 - Tweaked dropdown styling to match the app’s badge aesthetics and maintain dark-theme contrast.
 - Suppressed redundant Vite PWA warnings during development by adjusting plugin `devOptions`.
-
+- Removed obsolete root-level Go entry point and module file to avoid confusion—backend code now lives solely under `backend/`.
