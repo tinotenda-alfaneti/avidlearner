@@ -108,3 +108,88 @@ button.home {
 button.home:hover {
   background: #b91c1c;
 }
+
+/* ---------- Responsive tweeks ---------- */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .brand {
+    font-size: 18px;
+  }
+  .container {
+    padding: 16px;
+  }
+  .card {
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .card .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .badge {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+  .badge select {
+    width: 100%;
+  }
+  button.primary {
+    width: 100%;
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .metric {
+    min-width: 0;
+  }
+  .typing-box {
+    padding: 12px;
+  }
+  .typing-text {
+    font-size: 16px;
+  }
+  .prompt {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+  .container {
+    padding: 12px;
+  }
+  .card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .badge {
+    font-size: 10px;
+    gap: 4px;
+  }
+  .badge::after {
+    right: 10px;
+  }
+  .brand {
+    font-size: 16px;
+  }
+  .prompt {
+    font-size: 15px;
+  }
+  .typing-text {
+    font-size: 15px;
+  }
+  .metric p {
+    font-size: 16px;
+  }
+  .metric h3 {
+    font-size: 11px;
+  }
+}
