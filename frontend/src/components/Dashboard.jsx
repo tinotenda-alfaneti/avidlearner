@@ -9,7 +9,9 @@ function categoryLabel(value) {
 
 export default function Dashboard({
   coins,
-  streak,
+  quizStreak,
+  typingStreak,
+  typingBest,
   categoryOptions = [],
   selectedCategory = 'any',
   onSelectCategory,
@@ -17,31 +19,36 @@ export default function Dashboard({
   onStartTyping
 }) {
   return (
-    <div className="card">
-      <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
-        <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
-          <span className="badge">Coins: {coins}</span>
-          <span className="badge">Streak: {streak}</span>
-          <div className="badge">
-            <span role="img" aria-hidden="true"></span>Category:
-            <select
-              aria-label="Category"
-              value={selectedCategory}
-              onChange={e => onSelectCategory && onSelectCategory(e.target.value)}
-              className="badge-select"
-            >
-              {categoryOptions.map(opt => (
-                <option key={opt} value={opt}>{categoryLabel(opt)}</option>
-              ))}
-            </select>
-          </div>
+    <div className="dashboard-stack">
+      <div className="card dash-card">
+        <header className="dash-card__header">
+          <h2>Learn Mode</h2>
+          <p>Collect coins and keep your quiz streak alive.</p>
+        </header>
+        <div className="badge-row">
+          <span className="badge">💰 Coins: {coins}</span>
+          <span className="badge">🔥 Quiz Streak: {quizStreak}</span>
         </div>
-        <div className="row">
-          <button className="primary" onClick={onStartLearn}>Learn Mode</button>
-          <button className="primary" style={{ backgroundColor: '#7d89b0' }} onClick={onStartTyping}>Typing Mode</button>
+        <div className="dash-card__actions">
+          <button className="primary" onClick={onStartLearn}>Launch Learn Mode</button>
         </div>
+        <div className="card-note">Tip: Pick a category or leave "Any" to rotate through everything.</div>
       </div>
-      <div className="footer">Tip: Pick a category above or leave "Any" to rotate through everything.</div>
+
+      <div className="card dash-card">
+        <header className="dash-card__header">
+          <h2>Typing Mode</h2>
+          <p>Beat your personal-best streak and accuracy.</p>
+        </header>
+        <div className="badge-row">
+          <span className="badge">⌨ Typing Streak: {typingStreak}</span>
+          <span className="badge">🏆 Typing Best: {typingBest}</span>
+        </div>
+        <div className="dash-card__actions">
+          <button className="primary" onClick={onStartTyping}>Launch Typing Mode</button>
+        </div>
+        <div className="card-note">Your streak resets when you exit a session early. Finish strong to keep improving.</div>
+      </div>
     </div>
   )
 }

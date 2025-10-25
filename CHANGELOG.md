@@ -5,9 +5,11 @@
 - Added a reusable category selector pill that drives Learn and Typing flows with `Any` and `Random` options, keeping styling consistent across screens.
 - Expanded `data/lessons.json` with a broad set of clean-code, DevOps, Kubernetes, cloud, security, and architecture lessons to reduce quiz repetition and deepen coverage.
 - Introduced responsive CSS breakpoints to stack dashboard controls, scale typography, and adjust layout for tablet and phone viewports.
+- Surfaced typing-mode streak/best on the dashboard and persisted those metrics alongside quiz streaks.
 
 ### Changed
 - Updated frontend/backend lesson selection logic to respect session history and lower repetition.
 - Tweaked dropdown styling to match the app’s badge aesthetics and maintain dark-theme contrast.
 - Suppressed redundant Vite PWA warnings during development by adjusting plugin `devOptions`.
 - Removed obsolete root-level Go entry point and module file to avoid confusion—backend code now lives solely under `backend/`.
+- Reworked the dashboard into dedicated Learn and Typing panels for clearer stats and responsiveness improvements.

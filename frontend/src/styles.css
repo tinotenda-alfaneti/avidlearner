@@ -52,6 +52,45 @@ button.ghost { background:transparent; }
   background:#0f1631;
   color:var(--text);
 }
+
+.dashboard-stack {
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.dash-card__header {
+  margin-bottom:12px;
+}
+.dash-card__header h2 {
+  margin:0;
+  font-size:18px;
+}
+.dash-card__header p {
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:13px;
+}
+.badge-row {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+.dash-card__actions {
+  margin-top:16px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}
+.card-note {
+  margin-top:14px;
+  color:var(--muted);
+  font-size:13px;
+}
+button.primary.secondary {
+  background:linear-gradient(180deg,#1f2937,#334155);
+}
 .option { display:block; padding:10px 12px; border-radius:10px; border:1px solid #ffffff22; margin:6px 0; cursor:pointer; }
 .option:hover { border-color:#6ea8fe; }
 
@@ -128,6 +167,12 @@ button.home:hover {
   .card .row {
     flex-direction: column;
     align-items: stretch;
+  }
+  .dashboard-stack {
+    gap:12px;
+  }
+  .badge-row {
+    gap:6px;
   }
   .badge {
     font-size: 11px;

@@ -12,7 +12,9 @@ export default function TypingView({
   categoryOptions = [],
   availableCategories = [],
   selectedCategory = 'any',
-  onSelectCategory
+  onSelectCategory,
+  onTypingStats,
+  typingBest = 0,
 }) {
   const [lesson, setLesson] = useState(null);
   const [text, setText] = useState('');
@@ -24,6 +26,7 @@ export default function TypingView({
   const [remain, setRemain] = useState(60);
   const [stats, setStats] = useState({ wpm: 0, acc: 100, streak: 0, best: 0 });
   const inputRef = useRef(null);
+  const statsRef = useRef(stats);
 
   function computeStats(t, src, startMs) {
     const correct = t.split('').filter((ch, i) => ch === src[i]).length;
@@ -43,6 +46,9 @@ export default function TypingView({
   }
 
   async function start() {
+    setStats({ wpm: 0, acc: 100, streak: 0, best: 0 });
+    statsRef.current = { wpm: 0, acc: 100, streak: 0, best: typingBest };
+    onTypingStats && onTypingStats({ streak: 0, best: typingBest });
     const l = await randomLesson(pickCategory());
     setLesson(l);
     setText(l.text);
@@ -76,10 +82,19 @@ export default function TypingView({
       if (v[i] === text[i]) { streak++; best = Math.max(best, streak); }
       else { streak = 0; }
     }
-    setStats({ ...computeStats(v, text, startTime), streak, best });
+    const nextStats = { ...computeStats(v, text, startTime), streak, best };
+    setStats(nextStats);
+    onTypingStats && onTypingStats({ streak: nextStats.streak, best: nextStats.best });
     setTyped(v);
     if (v.length >= text.length) setRunning(false);
   }
+  useEffect(() => { statsRef.current = stats; }, [stats]);
+
+  useEffect(() => {
+    if (!running && lesson && typed) {
+      onTypingStats && onTypingStats({ streak: statsRef.current.streak, best: statsRef.current.best });
+    }
+  }, [running, lesson, typed, onTypingStats]);
 
   function renderText() {
     return text.split('').map((ch, i) => {
@@ -97,7 +112,7 @@ export default function TypingView({
 
       <div className="row">
         <div className="badge">
-          <span role="img" aria-hidden="true"></span>Category:
+          <span role="img" aria-hidden="true">📚</span>Category:
           <select
             aria-label="Category"
             value={selectedCategory}

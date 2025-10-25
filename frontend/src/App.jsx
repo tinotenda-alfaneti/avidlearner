@@ -10,7 +10,9 @@ import { getLessons, getReadingLesson, addLessonToQuiz, startQuiz, answerQuiz } 
 export default function App() {
   const [mode, setMode] = useState('dashboard'); // dashboard | reading | quiz | result | typing
   const [coins, setCoins] = useState(parseInt(localStorage.getItem('coins')||'0',10));
-  const [streak, setStreak] = useState(parseInt(localStorage.getItem('streak')||'0',10));
+  const [quizStreak, setQuizStreak] = useState(parseInt(localStorage.getItem('quizStreak')||'0',10));
+  const [typingStreak, setTypingStreak] = useState(parseInt(localStorage.getItem('typingStreak')||'0',10));
+  const [typingBest, setTypingBest] = useState(parseInt(localStorage.getItem('typingBest')||'0',10));
 
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('any');
@@ -28,7 +30,9 @@ export default function App() {
       .catch(()=>{});
   }, []);
   useEffect(() => { localStorage.setItem('coins', String(coins)); }, [coins]);
-  useEffect(() => { localStorage.setItem('streak', String(streak)); }, [streak]);
+  useEffect(() => { localStorage.setItem('quizStreak', String(quizStreak)); }, [quizStreak]);
+  useEffect(() => { localStorage.setItem('typingStreak', String(typingStreak)); }, [typingStreak]);
+  useEffect(() => { localStorage.setItem('typingBest', String(typingBest)); }, [typingBest]);
 
   const categoryOptions = ['any', 'random', ...categories].filter((value, index, arr) => {
     if (value === 'any' || value === 'random') {
@@ -89,13 +93,13 @@ export default function App() {
       // server already advanced us to the next question
       setQuizQuestion({ question: s.question, options: s.options, index: s.index, total: s.total });
       // show a tiny toast? for correctness; coins are cumulative
-      if (s.correct) setStreak(x => x + 1); else setStreak(0);
+      if (s.correct) setQuizStreak(x => x + 1); else setQuizStreak(0);
       if (typeof s.coinsTotal === 'number') setCoins(s.coinsTotal);
       return;
     }
     // end of quiz
     setResult({ correct: s.correct, earned: s.coinsEarned, total: s.coinsTotal, message: s.message });
-    if (s.correct) setStreak(x => x + 1); else setStreak(0);
+    if (s.correct) setQuizStreak(x => x + 1); else setQuizStreak(0);
     if (typeof s.coinsTotal === 'number') setCoins(s.coinsTotal);
     setMode('result');
   }
@@ -110,6 +114,15 @@ export default function App() {
     return <div style={{fontSize:12,color:'#7d89b0'}}>Built with Go + React</div>;
   }
 
+  function handleTypingStats({ streak, best }) {
+    if (typeof streak === 'number') {
+      setTypingStreak(streak);
+    }
+    if (typeof best === 'number') {
+      setTypingBest(prev => Math.max(prev, best));
+    }
+  }
+
   return (
     <>
       <header>
@@ -121,7 +134,9 @@ export default function App() {
         {mode === 'dashboard' && (
           <Dashboard
             coins={coins}
-            streak={streak}
+            quizStreak={quizStreak}
+            typingStreak={typingStreak}
+            typingBest={typingBest}
             categoryOptions={categoryOptions}
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
@@ -171,6 +186,8 @@ export default function App() {
             availableCategories={categories}
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
+            typingBest={typingBest}
+            onTypingStats={handleTypingStats}
             onExit={()=>setMode('dashboard')}
           />
         )}
