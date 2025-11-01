@@ -52,3 +52,33 @@ export async function answerQuiz(answerIndex) {
   if (!res.ok) throw new Error('Answer failed');
   return res.json();
 }
+
+export async function getProChallenge({ topic, difficulty } = {}) {
+  const params = new URLSearchParams();
+  if (topic) params.set('topic', topic);
+  if (difficulty) params.set('difficulty', difficulty);
+  const qs = params.toString();
+  const res = await fetch(`/api/prochallenge${qs ? `?${qs}` : ''}`);
+  if (!res.ok) throw new Error('Unable to fetch challenge');
+  return res.json();
+}
+
+export async function submitProChallenge({ id, code }) {
+  const res = await fetch('/api/prochallenge/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, code })
+  });
+  if (!res.ok) throw new Error('Submission failed');
+  return res.json();
+}
+
+export async function requestProHint(id) {
+  const res = await fetch('/api/prochallenge/hint', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  if (!res.ok) throw new Error('Hint unavailable');
+  return res.json();
+}

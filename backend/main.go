@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	crand "crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	mrand "math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -34,20 +38,21 @@ type LessonsResponse struct {
 const lessonRepeatWindow = 100
 
 type SessionState struct {
-	Stage       string   `json:"stage"`
+	Stage string `json:"stage"`
 	// lesson/reading
-	Lesson      *Lesson  `json:"lesson,omitempty"`
+	Lesson *Lesson `json:"lesson,omitempty"`
 	// quiz
-	Question    string   `json:"question,omitempty"`
-	Options     []string `json:"options,omitempty"`
-	Index       int      `json:"index,omitempty"`
-	Total       int      `json:"total,omitempty"`
+	Question string   `json:"question,omitempty"`
+	Options  []string `json:"options,omitempty"`
+	Index    int      `json:"index,omitempty"`
+	Total    int      `json:"total,omitempty"`
 	// result/answer
-	Correct     bool     `json:"correct,omitempty"`
-	CoinsEarned int      `json:"coinsEarned,omitempty"`
-	CoinsTotal  int      `json:"coinsTotal,omitempty"`
-	More        bool     `json:"more,omitempty"`
-	Message     string   `json:"message,omitempty"`
+	Correct     bool   `json:"correct,omitempty"`
+	CoinsEarned int    `json:"coinsEarned,omitempty"`
+	CoinsTotal  int    `json:"coinsTotal,omitempty"`
+	XPTotal     int    `json:"xpTotal,omitempty"`
+	More        bool   `json:"more,omitempty"`
+	Message     string `json:"message,omitempty"`
 }
 
 // One generated MCQ
@@ -58,23 +63,67 @@ type QuizQuestion struct {
 	CorrectIndex int
 }
 
+type ChallengeStarter struct {
+	Filename string `json:"filename"`
+	Code     string `json:"code"`
+}
+
+type ChallengeReward struct {
+	XP    int `json:"xp"`
+	Coins int `json:"coins"`
+}
+
+type ProChallenge struct {
+	ID          string           `json:"id"`
+	Title       string           `json:"title"`
+	Difficulty  string           `json:"difficulty"`
+	Topics      []string         `json:"topics"`
+	Description string           `json:"description"`
+	Starter     ChallengeStarter `json:"starter"`
+	Hints       []string         `json:"hints"`
+	Reward      ChallengeReward  `json:"reward"`
+}
+
+type testFailure struct {
+	Name   string `json:"name"`
+	Output string `json:"output"`
+}
+
+type challengeTestResult struct {
+	Passed   bool
+	Total    int
+	Failures []testFailure
+	Stdout   string
+	Stderr   string
+}
+
 // Per-session state
 type profile struct {
-	Coins         int
-	Streak        int
-	LessonsSeen   []string
+	Coins       int
+	Streak      int
+	XP          int
+	LessonsSeen []string
 
 	CurrentQuiz   []QuizQuestion
 	QuizIndex     int
 	LastLesson    *Lesson
 	RecentLessons []string
+	HintIdx       map[string]int // challengeID -> next hint index
+}
+
+func newProfile() *profile {
+	return &profile{
+		HintIdx: map[string]int{},
+	}
 }
 
 // ---------- Globals ----------
 var (
-	lessonsByCat map[string][]Lesson
-	categories   []string
-	sessions     = map[string]*profile{} // sid -> profile
+	lessonsByCat      map[string][]Lesson
+	categories        []string
+	sessions          = map[string]*profile{} // sid -> profile
+	proChallenges     []ProChallenge
+	proChallengesByID map[string]ProChallenge
 )
 
 // ---------- Main ----------
@@ -85,7 +134,7 @@ func main() {
 	// Load lessons
 	dataPath := os.Getenv("LESSONS_FILE")
 	if dataPath == "" {
-		dataPath = filepath.Join("..","data", "lessons.json")
+		dataPath = filepath.Join("..", "data", "lessons.json")
 	}
 	loaded, err := loadLessons(dataPath)
 	if err != nil {
@@ -99,6 +148,20 @@ func main() {
 		categories = append(categories, cat)
 	}
 	sort.Strings(categories)
+
+	// Load pro challenges
+	proPath := os.Getenv("PRO_CHALLENGES_FILE")
+	if proPath == "" {
+		proPath = filepath.Join("..", "data", "pro_challenges.json")
+		if _, err := os.Stat(proPath); os.IsNotExist(err) {
+			proPath = filepath.Join("data", "pro_challenges.json")
+		}
+	}
+	var pcErr error
+	proChallenges, proChallengesByID, pcErr = loadProChallenges(proPath)
+	if pcErr != nil {
+		log.Fatalf("failed to load pro challenges from %s: %v", proPath, pcErr)
+	}
 
 	// Static frontend (vite build output)
 	frontendDist := filepath.Join("frontend", "dist")
@@ -117,6 +180,9 @@ func main() {
 	http.HandleFunc("/api/lessons", cors(handleLessons))
 	http.HandleFunc("/api/random", cors(handleRandom))
 	http.HandleFunc("/api/session", cors(handleSession)) // multi-stage + POSTs
+	http.HandleFunc("/api/prochallenge", cors(handleProChallenge))
+	http.HandleFunc("/api/prochallenge/submit", cors(handleProChallengeSubmit))
+	http.HandleFunc("/api/prochallenge/hint", cors(handleProChallengeHint))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -138,6 +204,25 @@ func loadLessons(path string) ([]Lesson, error) {
 		return nil, err
 	}
 	return L, nil
+}
+
+func loadProChallenges(path string) ([]ProChallenge, map[string]ProChallenge, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	var list []ProChallenge
+	if err := json.Unmarshal(b, &list); err != nil {
+		return nil, nil, err
+	}
+	byID := make(map[string]ProChallenge, len(list))
+	for _, ch := range list {
+		if ch.ID == "" {
+			continue
+		}
+		byID[ch.ID] = ch
+	}
+	return list, byID, nil
 }
 
 func pickRandomLesson(cat string) *Lesson {
@@ -266,7 +351,7 @@ func withSession(next http.Handler) http.Handler {
 				MaxAge:   60 * 60 * 24 * 30,
 				SameSite: http.SameSiteLaxMode,
 			})
-			sessions[sid] = &profile{}
+			sessions[sid] = newProfile()
 			r.AddCookie(&http.Cookie{Name: "sid", Value: sid})
 		}
 		next.ServeHTTP(w, r)
@@ -276,11 +361,11 @@ func withSession(next http.Handler) http.Handler {
 func getProfile(r *http.Request) *profile {
 	c, err := r.Cookie("sid")
 	if err != nil {
-		return &profile{}
+		return newProfile()
 	}
 	p, ok := sessions[c.Value]
 	if !ok {
-		p = &profile{}
+		p = newProfile()
 		sessions[c.Value] = p
 	}
 	return p
@@ -334,8 +419,10 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 			}
 			p.LastLesson = lesson
 			_ = json.NewEncoder(w).Encode(SessionState{
-				Stage:  "lesson",
-				Lesson: lesson,
+				Stage:      "lesson",
+				Lesson:     lesson,
+				CoinsTotal: p.Coins,
+				XPTotal:    p.XP,
 			})
 			return
 
@@ -346,11 +433,13 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 			}
 			q := p.CurrentQuiz[p.QuizIndex]
 			_ = json.NewEncoder(w).Encode(SessionState{
-				Stage:    "quiz",
-				Question: q.Question,
-				Options:  q.Options,
-				Index:    p.QuizIndex + 1,
-				Total:    len(p.CurrentQuiz),
+				Stage:      "quiz",
+				Question:   q.Question,
+				Options:    q.Options,
+				Index:      p.QuizIndex + 1,
+				Total:      len(p.CurrentQuiz),
+				CoinsTotal: p.Coins,
+				XPTotal:    p.XP,
 			})
 			return
 		}
@@ -358,7 +447,9 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		switch stage {
 		case "add":
-			var body struct{ Title string `json:"title"` }
+			var body struct {
+				Title string `json:"title"`
+			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				http.Error(w, "bad body", http.StatusBadRequest)
 				return
@@ -367,10 +458,10 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 				p.LessonsSeen = uniqueStrings(append(p.LessonsSeen, body.Title))
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"stage":        "added",
-				"lessonsSeen":  p.LessonsSeen,
-				"count":        len(p.LessonsSeen),
-				"message":      "lesson added to study list",
+				"stage":       "added",
+				"lessonsSeen": p.LessonsSeen,
+				"count":       len(p.LessonsSeen),
+				"message":     "lesson added to study list",
 			})
 			return
 
@@ -400,12 +491,14 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 			p.QuizIndex = 0
 			first := p.CurrentQuiz[0]
 			_ = json.NewEncoder(w).Encode(SessionState{
-				Stage:    "quiz",
-				Question: first.Question,
-				Options:  first.Options,
-				Index:    1,
-				Total:    len(p.CurrentQuiz),
-				Message:  "quiz started",
+				Stage:      "quiz",
+				Question:   first.Question,
+				Options:    first.Options,
+				Index:      1,
+				Total:      len(p.CurrentQuiz),
+				Message:    "quiz started",
+				CoinsTotal: p.Coins,
+				XPTotal:    p.XP,
 			})
 			return
 
@@ -414,7 +507,9 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "no active quiz", http.StatusBadRequest)
 				return
 			}
-			var body struct{ AnswerIndex int `json:"answerIndex"` }
+			var body struct {
+				AnswerIndex int `json:"answerIndex"`
+			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				http.Error(w, "bad body", http.StatusBadRequest)
 				return
@@ -438,6 +533,7 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 				Correct:     correct,
 				CoinsEarned: earned,
 				CoinsTotal:  p.Coins,
+				XPTotal:     p.XP,
 				More:        more,
 				Message:     map[bool]string{true: "Correct! +10 coins", false: "Not quite. Keep going!"}[correct],
 			}
@@ -461,6 +557,165 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "invalid request", http.StatusBadRequest)
+}
+
+func handleProChallenge(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if len(proChallenges) == 0 {
+		http.Error(w, "no challenges available", http.StatusServiceUnavailable)
+		return
+	}
+
+	difficulty := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("difficulty")))
+	if difficulty == "" {
+		difficulty = "advanced"
+	}
+	topic := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("topic")))
+
+	var pool []ProChallenge
+	for _, ch := range proChallenges {
+		if difficulty != "" && difficulty != "any" && !strings.EqualFold(ch.Difficulty, difficulty) {
+			continue
+		}
+		if topic != "" && topic != "any" {
+			match := false
+			for _, tpc := range ch.Topics {
+				if strings.EqualFold(tpc, topic) {
+					match = true
+					break
+				}
+			}
+			if !match {
+				continue
+			}
+		}
+		pool = append(pool, ch)
+	}
+
+	if len(pool) == 0 {
+		http.Error(w, "no challenge found for selection", http.StatusNotFound)
+		return
+	}
+
+	selected := pool[mrand.Intn(len(pool))]
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(selected)
+}
+
+func handleProChallengeSubmit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	p := getProfile(r)
+	if p.HintIdx == nil {
+		p.HintIdx = map[string]int{}
+	}
+
+	var body struct {
+		ID   string `json:"id"`
+		Code string `json:"code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	ch, ok := proChallengesByID[body.ID]
+	if !ok {
+		http.Error(w, "challenge not found", http.StatusNotFound)
+		return
+	}
+
+	res, err := runChallengeTests(r.Context(), ch, body.Code)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("test execution failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if res.Passed {
+		p.Coins += ch.Reward.Coins
+		p.XP += ch.Reward.XP
+		resp := map[string]any{
+			"passed":      true,
+			"total":       res.Total,
+			"coinsEarned": ch.Reward.Coins,
+			"coinsTotal":  p.Coins,
+			"xpEarned":    ch.Reward.XP,
+			"xpTotal":     p.XP,
+			"message":     fmt.Sprintf("All tests passed! +%d coins · +%d XP", ch.Reward.Coins, ch.Reward.XP),
+			"stdout":      res.Stdout,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	resp := map[string]any{
+		"passed":   false,
+		"total":    res.Total,
+		"failures": res.Failures,
+		"stdout":   res.Stdout,
+		"stderr":   res.Stderr,
+	}
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func handleProChallengeHint(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.ID == "" {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	ch, ok := proChallengesByID[body.ID]
+	if !ok {
+		http.Error(w, "challenge not found", http.StatusNotFound)
+		return
+	}
+
+	p := getProfile(r)
+	if p.HintIdx == nil {
+		p.HintIdx = map[string]int{}
+	}
+	if p.Coins >= 2 {
+		p.Coins -= 2
+	} else {
+		p.Coins = 0
+	}
+
+	index := p.HintIdx[ch.ID]
+	var hint string
+	hasMore := false
+	if index < len(ch.Hints) {
+		hint = ch.Hints[index]
+		index++
+		if index < len(ch.Hints) {
+			hasMore = true
+		}
+	} else if len(ch.Hints) > 0 {
+		// no more hints; repeat last hint
+		hint = ch.Hints[len(ch.Hints)-1]
+		index = len(ch.Hints)
+	}
+	p.HintIdx[ch.ID] = index
+
+	resp := map[string]any{
+		"hint":       hint,
+		"index":      index,
+		"hasMore":    hasMore,
+		"coinsTotal": p.Coins,
+		"xpTotal":    p.XP,
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // Build one MCQ for a lesson (correct = lesson explain/text; distractors from others)
@@ -487,12 +742,19 @@ func buildQuizForLesson(l Lesson) QuizQuestion {
 	}
 	mrand.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })
 	opts := []string{correct}
-	for i := 0; i < 3 && i < len(pool); i++ { opts = append(opts, pool[i]) }
-	for len(opts) < 4 { opts = append(opts, "This option does not apply to the concept.") }
+	for i := 0; i < 3 && i < len(pool); i++ {
+		opts = append(opts, pool[i])
+	}
+	for len(opts) < 4 {
+		opts = append(opts, "This option does not apply to the concept.")
+	}
 	mrand.Shuffle(len(opts), func(i, j int) { opts[i], opts[j] = opts[j], opts[i] })
 	correctIdx := 0
 	for i, o := range opts {
-		if o == correct { correctIdx = i; break }
+		if o == correct {
+			correctIdx = i
+			break
+		}
 	}
 	return QuizQuestion{
 		LessonTitle:  l.Title,
@@ -500,6 +762,156 @@ func buildQuizForLesson(l Lesson) QuizQuestion {
 		Options:      opts,
 		CorrectIndex: correctIdx,
 	}
+}
+
+func runChallengeTests(parent context.Context, ch ProChallenge, source string) (challengeTestResult, error) {
+	var result challengeTestResult
+	if strings.Contains(ch.ID, "..") {
+		return result, fmt.Errorf("invalid challenge id")
+	}
+	if strings.TrimSpace(source) == "" {
+		result.Failures = []testFailure{{Name: "submission", Output: "no code submitted"}}
+		return result, nil
+	}
+
+	tempDir, err := os.MkdirTemp("", "avid-pro-*")
+	if err != nil {
+		return result, err
+	}
+	defer os.RemoveAll(tempDir)
+
+	mod := "module example.com/protmp\n\ngo 1.24\n"
+	if err := os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte(mod), 0o644); err != nil {
+		return result, err
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "challenge.go"), []byte(source), 0o644); err != nil {
+		return result, err
+	}
+
+	testSrc, err := resolveChallengeTestPath(ch.ID)
+	if err != nil {
+		return result, err
+	}
+	if err := writeChallengeTest(filepath.Join(tempDir, "challenge_test.go"), testSrc); err != nil {
+		return result, err
+	}
+
+	runCtx, cancel := context.WithTimeout(parent, 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(runCtx, "go", "test", "-run", "Test", "-count=1", "-timeout=3s", "./...")
+	cmd.Dir = tempDir
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	runErr := cmd.Run()
+	result.Stdout = strings.TrimSpace(stdout.String())
+	result.Stderr = strings.TrimSpace(stderr.String())
+	result.Total = countTests(result.Stdout + "\n" + result.Stderr)
+
+	if runErr != nil {
+		result.Failures = extractFailures(result.Stdout + "\n" + result.Stderr)
+		if len(result.Failures) == 0 {
+			if errors.Is(runErr, context.DeadlineExceeded) || errors.Is(runCtx.Err(), context.DeadlineExceeded) {
+				result.Failures = []testFailure{{Name: "timeout", Output: "tests exceeded execution time limit"}}
+			} else if result.Stderr != "" {
+				result.Failures = []testFailure{{Name: "tests", Output: result.Stderr}}
+			} else if result.Stdout != "" {
+				result.Failures = []testFailure{{Name: "tests", Output: result.Stdout}}
+			} else {
+				result.Failures = []testFailure{{Name: "tests", Output: runErr.Error()}}
+			}
+		}
+		return result, nil
+	}
+
+	result.Passed = true
+	return result, nil
+}
+
+func resolveChallengeTestPath(id string) (string, error) {
+	candidates := []string{
+		filepath.Join("protests", id, "challenge_test.go"),
+		filepath.Join("backend", "protests", id, "challenge_test.go"),
+		filepath.Join("..", "backend", "protests", id, "challenge_test.go"),
+	}
+	for _, path := range candidates {
+		if info, err := os.Stat(path); err == nil && !info.IsDir() {
+			return path, nil
+		}
+	}
+	return "", fmt.Errorf("hidden tests for %s not found", id)
+}
+
+func writeChallengeTest(dst, src string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(data), "\n")
+	if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "//go:build") {
+		lines = lines[1:]
+		if len(lines) > 0 && strings.TrimSpace(lines[0]) == "" {
+			lines = lines[1:]
+		}
+	}
+	cleaned := strings.Join(lines, "\n")
+	return os.WriteFile(dst, []byte(cleaned), 0o644)
+}
+
+func countTests(out string) int {
+	count := strings.Count(out, "--- PASS:")
+	count += strings.Count(out, "--- FAIL:")
+	count += strings.Count(out, "--- SKIP:")
+	if count == 0 && strings.Contains(out, "PASS\n") {
+		// fallback when test output suppressed
+		count = 1
+	}
+	return count
+}
+
+func extractFailures(out string) []testFailure {
+	lines := strings.Split(out, "\n")
+	var (
+		current *testFailure
+		result  []testFailure
+	)
+	flush := func() {
+		if current != nil {
+			result = append(result, testFailure{
+				Name:   current.Name,
+				Output: strings.TrimSpace(current.Output),
+			})
+			current = nil
+		}
+	}
+
+	for _, raw := range lines {
+		line := strings.TrimSpace(raw)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "--- FAIL:") {
+			flush()
+			fields := strings.Fields(line)
+			name := ""
+			if len(fields) >= 3 {
+				name = fields[2]
+			}
+			current = &testFailure{Name: name, Output: line}
+			continue
+		}
+		if strings.HasPrefix(line, "--- PASS:") || strings.HasPrefix(line, "--- SKIP:") || strings.HasPrefix(line, "PASS") || strings.HasPrefix(line, "FAIL") || strings.HasPrefix(line, "ok ") {
+			flush()
+			continue
+		}
+		if current != nil {
+			current.Output += "\n" + line
+		}
+	}
+	flush()
+	return result
 }
 
 // Liberal CORS so frontend dev server can call POST endpoints

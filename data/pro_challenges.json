@@ -1,0 +1,173 @@
+[
+  {
+    "id": "ctx-cancel-http",
+    "title": "Cancel In-Flight Work with context.Context",
+    "difficulty": "advanced",
+    "topics": ["context", "http", "cancellation"],
+    "description": "Implement an HTTP client wrapper that respects context cancellation and per-call deadlines. Propagate ctx and abort promptly on ctx.Done().",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\nimport (\n  \"context\"\n  \"net/http\"\n)\n\ntype Client struct{ H *http.Client }\n\n// Do should respect ctx cancellation and per-call timeout via ctx deadline.\nfunc (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {\n  // TODO: implement\n  return nil, nil\n}\n"
+    },
+    "hints": [
+      "Use http.NewRequestWithContext to bind ctx to the request before dispatching.",
+      "Honor ctx.Deadline by using the provided context and checking ctx.Err after Do returns.",
+      "Return context.Canceled or context.DeadlineExceeded so callers can react."
+    ],
+    "reward": { "xp": 50, "coins": 25 }
+  },
+  {
+    "id": "worker-pool-backpressure",
+    "title": "Race-Free Worker Pool with Backpressure",
+    "difficulty": "advanced",
+    "topics": ["concurrency", "channels"],
+    "description": "Build a bounded worker pool that applies backpressure. Submitting more work than capacity should block until workers are free. Ensure shutdown drains queue, waits for workers, and avoids goroutine leaks.",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\nimport \"context\"\n\ntype Task func(context.Context) error\n\ntype Pool struct {\n  // TODO: fields\n}\n\nfunc NewPool(workers, capacity int) *Pool {\n  // TODO: implement\n  return nil\n}\n\nfunc (p *Pool) Submit(ctx context.Context, t Task) error {\n  // TODO: implement\n  return nil\n}\n\nfunc (p *Pool) Close() {\n  // TODO: implement\n}\n"
+    },
+    "hints": [
+      "Use buffered channels for task queue and a WaitGroup to track workers.",
+      "Respect context cancellation in Submit so callers can back out under pressure.",
+      "Drain pending tasks and signal workers to exit cleanly during Close."
+    ],
+    "reward": { "xp": 70, "coins": 35 }
+  },
+  {
+    "id": "token-bucket-limiter",
+    "title": "Token Bucket Rate Limiter",
+    "difficulty": "advanced",
+    "topics": ["rate-limiting", "concurrency"],
+    "description": "Implement a goroutine-safe token bucket limiter with configurable fill rate and burst. Allow must be fast, race-free, and honor time-based refills.",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\nimport \"time\"\n\ntype Limiter struct {\n  // TODO: fields\n}\n\nfunc New(tokensPerSec int, burst int) *Limiter {\n  // TODO: implement\n  return nil\n}\n\nfunc (l *Limiter) Allow(now time.Time) bool {\n  // TODO: implement\n  return false\n}\n"
+    },
+    "hints": [
+      "Track the last refill time and carry fractional tokens as float64.",
+      "Guard internal state with sync.Mutex to keep Allow safe under concurrency.",
+      "Cap tokens at burst and deduct one when Allow succeeds."
+    ],
+    "reward": { "xp": 60, "coins": 30 }
+  },
+  {
+    "id": "clean-config-merge",
+    "title": "Refine Configuration Merge",
+    "difficulty": "medium",
+    "topics": ["clean-code", "configuration"],
+    "description": "Implement a configuration merge that keeps intent obvious: override only meaningful values, deduplicate tags, and avoid mutating inputs.",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\nimport \"time\"\n\ntype Config struct {\n  Timeout  time.Duration\n  Endpoint string\n  Retries  int\n  Tags     []string\n}\n\nfunc Merge(base, override Config) Config {\n  // TODO: implement\n  return Config{}\n}\n"
+    },
+    "hints": [
+      "Treat zero values in override as \"leave the base\" so callers are explicit about overrides.",
+      "Work on copies - never mutate base or override when building the merged Config.",
+      "Deduplicate tags while preserving original order; append override tags after base ones."
+    ],
+    "reward": { "xp": 35, "coins": 18 }
+  },
+  {
+    "id": "clean-error-wrap",
+    "title": "Consistent Error Wrapping",
+    "difficulty": "medium",
+    "topics": ["clean-code", "errors"],
+    "description": "Create helpers that wrap errors with context while keeping the root cause discoverable. Nil errors should stay nil.",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\nfunc Wrap(err error, msg string) error {\n  // TODO: implement\n  return nil\n}\n\nfunc Cause(err error) error {\n  // TODO: implement\n  return nil\n}\n"
+    },
+    "hints": [
+      "Use fmt.Errorf with %w so errors.Is and errors.As continue to work.",
+      "Return nil when asked to wrap nil - callers shouldn't have to guard twice.",
+      "Cause should unwrap repeatedly until there is no further error to unwrap."
+    ],
+    "reward": { "xp": 28, "coins": 14 }
+  },
+  {
+    "id": "clean-string-normalizer",
+    "title": "Readable Sentence Normalizer",
+    "difficulty": "medium",
+    "topics": ["clean-code", "strings"],
+    "description": "Write a Normalizer that trims noise, collapses whitespace, fixes punctuation spacing, and capitalizes sentence starts for clearer output.",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\nfunc Normalize(input string) string {\n  // TODO: implement\n  return \"\"\n}\n"
+    },
+    "hints": [
+      "Trim leading/trailing whitespace first, then collapse internal whitespace to single spaces.",
+      "Guarantee a single space after ., !, and ? when more text follows; remove stray spaces before punctuation.",
+      "Capitalize the first letter of the string and the first letter following sentence-ending punctuation."
+    ],
+    "reward": { "xp": 30, "coins": 16 }
+  },
+  {
+    "id": "io-limit-reader",
+    "title": "Implement a LimitReader",
+    "difficulty": "advanced",
+    "topics": ["io"],
+    "description": "Create an io.Reader adapter that stops after N bytes, returning EOF thereafter without reading more data than necessary.",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\nimport \"io\"\n\ntype LimitReader struct {\n  R io.Reader\n  N int64\n}\n\nfunc (lr *LimitReader) Read(p []byte) (int, error) {\n  // TODO: implement\n  return 0, nil\n}\n"
+    },
+    "hints": [
+      "Never read beyond lr.N remaining bytes.",
+      "Return io.EOF when the limit is hit even if the underlying reader has more data.",
+      "Handle nil reader gracefully and propagate underlying errors."
+    ],
+    "reward": { "xp": 40, "coins": 20 }
+  },
+  {
+    "id": "generics-map-filter",
+    "title": "Generic Map/Filter Utilities",
+    "difficulty": "advanced",
+    "topics": ["generics"],
+    "description": "Write constraint-safe Map and Filter helpers for slices that avoid extra allocations. Map applies a transform per element and returns the new slice. Filter keeps elements that satisfy a predicate.",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\n// Map applies fn to every element of in and returns the transformed slice.\nfunc Map[T any, R any](in []T, fn func(T) R) []R {\n  // TODO: implement\n  return nil\n}\n\n// Filter keeps elements in that satisfy fn.\nfunc Filter[T any](in []T, fn func(T) bool) []T {\n  // TODO: implement\n  return nil\n}\n"
+    },
+    "hints": [
+      "Pre-size results using len(in) to minimize allocations.",
+      "Do not mutate the input slice; allocate a fresh result.",
+      "Filter should reuse capacity by appending to a zero-length slice backed by the original array."
+    ],
+    "reward": { "xp": 55, "coins": 28 }
+  },
+  {
+    "id": "http-middleware-logging",
+    "title": "Structured HTTP Middleware Logging",
+    "difficulty": "advanced",
+    "topics": ["http", "middleware"],
+    "description": "Wrap an http.Handler with middleware that logs method, path, status code, and duration. Use the provided Logger interface and ensure duration covers downstream execution.",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\nimport (\n  \"net/http\"\n  \"time\"\n)\n\ntype Logger interface {\n  Log(method, path string, status int, duration time.Duration)\n}\n\nfunc Logging(logger Logger, next http.Handler) http.Handler {\n  // TODO: implement\n  return nil\n}\n"
+    },
+    "hints": [
+      "Capture start := time.Now() before invoking next.ServeHTTP.",
+      "Wrap ResponseWriter to intercept WriteHeader and track the final status code.",
+      "Default status to 200 if WriteHeader is never called."
+    ],
+    "reward": { "xp": 45, "coins": 22 }
+  },
+  {
+    "id": "fan-in-fan-out",
+    "title": "Fan-In/Fan-Out with Cancellation",
+    "difficulty": "advanced",
+    "topics": ["concurrency", "context"],
+    "description": "Implement a fan-out worker pattern that processes inputs concurrently and fans results back in via a single output channel. Respect context cancellation to stop all goroutines promptly.",
+    "starter": {
+      "filename": "challenge.go",
+      "code": "package challenge\n\nimport \"context\"\n\ntype Processor func(context.Context, int) (int, error)\n\ntype Result struct {\n  Value int\n  Err   error\n}\n\nfunc Fan(ctx context.Context, in <-chan int, workers int, proc Processor) <-chan Result {\n  // TODO: implement\n  return nil\n}\n"
+    },
+    "hints": [
+      "Spin up worker goroutines that select on ctx.Done().",
+      "Aggregate worker outputs into a single channel and close it when all workers exit.",
+      "Avoid leaking goroutines by respecting ctx cancellation when reading from in."
+    ],
+    "reward": { "xp": 65, "coins": 32 }
+  }
+]
+
