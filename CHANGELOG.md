@@ -1,3 +1,14 @@
+## [v0.0.2 - 2025-11-01]
+
+### Added
+- Introduced Pro Mode coding challenges with Monaco editor tooling, hint flow, and `/api/prochallenge` endpoints that execute hidden Go test suites for XP and coin rewards.
+- Seeded `data/pro_challenges.json` with advanced and medium-difficulty scenarios (including new clean-code exercises) plus private protest suites to validate submissions.
+- Created a reusable `ModeCard` component and new dashboard Coding panel so Learn, Coding, and Typing each present focused stats and actions.
+
+### Changed
+- Expanded Pro Mode filters with topic and difficulty selectors and surfaced current selections alongside coin/XP totals.
+- Updated dashboard layout to align cards in a responsive grid and moved category selection inside the Learn Mode card.
+
 ## [v0.0.1 - Unreleased]
 
 ### Added
