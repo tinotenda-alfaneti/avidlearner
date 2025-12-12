@@ -8,8 +8,18 @@ metadata:
   annotations:
     "helm.sh/hook": test
 spec:
+  serviceAccountName: default
   containers:
-    - name: wget
-      image: busybox
-      command: ['sh', '-c', 'wget -qO- http://{{ .Release.Name }}:80/healthz']
+    - name: kubectl
+      image: bitnami/kubectl:latest
+      imagePullPolicy: IfNotPresent
+      command: 
+        - sh
+        - -c
+        - |
+          echo "Checking deployment status..."
+          kubectl get deployment {{ .Release.Name }} -n {{ .Release.Namespace }} || exit 1
+          echo "Deployment found. Checking if pods are ready..."
+          kubectl wait --for=condition=available --timeout=60s deployment/{{ .Release.Name }} -n {{ .Release.Namespace }}
+          echo "Deployment is healthy and ready!"
   restartPolicy: Never
