@@ -17,6 +17,9 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"avidlearner/ai"
+	"avidlearner/config"
 )
 
 // ---------- Models ----------
@@ -180,6 +183,8 @@ func main() {
 	http.HandleFunc("/api/lessons", cors(handleLessons))
 	http.HandleFunc("/api/random", cors(handleRandom))
 	http.HandleFunc("/api/session", cors(handleSession)) // multi-stage + POSTs
+	http.HandleFunc("/api/ai/generate", cors(handleAIGenerate))
+	http.HandleFunc("/api/ai/config", cors(handleAIConfig))
 	http.HandleFunc("/api/prochallenge", cors(handleProChallenge))
 	http.HandleFunc("/api/prochallenge/submit", cors(handleProChallengeSubmit))
 	http.HandleFunc("/api/prochallenge/hint", cors(handleProChallengeHint))
@@ -938,4 +943,85 @@ func cors(next http.HandlerFunc) http.HandlerFunc {
 		}
 		withSession(next).ServeHTTP(w, r)
 	}
+}
+
+// ---------- AI Lesson Generation ----------
+
+// handleAIGenerate generates a lesson using AI based on topic and category
+func handleAIGenerate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	// Check if AI lessons are enabled
+	flags := config.GetFeatureFlags()
+	if !flags.IsAILessonsEnabled() {
+		http.Error(w, `{"error":"AI lesson generation is currently disabled"}`, http.StatusServiceUnavailable)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Category string `json:"category"`
+		Topic    string `json:"topic"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Topic == "" {
+		http.Error(w, `{"error":"topic is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Category == "" {
+		req.Category = "general"
+	}
+
+	// Get the configured AI provider
+	provider, err := ai.GetProvider(flags.GetAIProvider(), flags.GetAIModel())
+	if err != nil {
+		log.Printf("Error getting AI provider: %v", err)
+		http.Error(w, `{"error":"AI provider not available"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Generate lesson with timeout
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	lesson, err := provider.GenerateLesson(ctx, req.Category, req.Topic)
+	if err != nil {
+		log.Printf("Error generating lesson: %v", err)
+		http.Error(w, fmt.Sprintf(`{"error":"failed to generate lesson: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	// Return the generated lesson
+	response := SessionState{
+		Stage:   "lesson",
+		Lesson:  (*Lesson)(lesson),
+		Message: "AI-generated lesson",
+	}
+
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+// handleAIConfig returns the current AI feature flag status
+func handleAIConfig(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	flags := config.GetFeatureFlags()
+
+	response := map[string]interface{}{
+		"aiEnabled": flags.IsAILessonsEnabled(),
+		"provider":  flags.GetAIProvider(),
+		"maxPerDay": flags.GetMaxAILessonsPerDay(),
+	}
+
+	_ = json.NewEncoder(w).Encode(response)
 }

@@ -17,7 +17,7 @@ pipeline {
 
     stage('Checkout Code') {
       steps {
-        echo "📦 Checking out ${REPO_NAME}..."
+        echo "Checking out ${REPO_NAME}..."
         checkout scm
         sh 'mkdir -p $WORKSPACE/bin'
       }
@@ -26,7 +26,7 @@ pipeline {
     stage('Install Tools') {
       steps {
         sh '''
-          echo "⚙️ Installing kubectl & helm..."
+          echo "Installing kubectl & helm..."
           ARCH=$(uname -m)
           case "$ARCH" in
               x86_64)   KARCH=amd64 ;;
@@ -55,7 +55,7 @@ pipeline {
       steps {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
           sh '''
-            echo "🔐 Setting up kubeconfig..."
+            echo "Setting up kubeconfig..."
             mkdir -p $WORKSPACE/.kube
             cp "$KUBECONFIG_FILE" $WORKSPACE/.kube/config
             chmod 600 $WORKSPACE/.kube/config
@@ -71,16 +71,16 @@ pipeline {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
           sh '''
             export KUBECONFIG=$WORKSPACE/.kube/config
-            echo "🧱 Ensuring namespace ${NAMESPACE} exists..."
+            echo "Ensuring namespace ${NAMESPACE} exists..."
             $WORKSPACE/bin/kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 
-            echo "🔁 Copying dockerhub-creds from ${SOURCE_NS} to ${NAMESPACE}..."
+            echo "Copying dockerhub-creds from ${SOURCE_NS} to ${NAMESPACE}..."
             $WORKSPACE/bin/kubectl get secret dockerhub-creds -n ${SOURCE_NS} -o yaml \
               | grep -v 'resourceVersion:' | grep -v 'uid:' | grep -v 'creationTimestamp:' \
               | sed "s/namespace: ${SOURCE_NS}/namespace: ${NAMESPACE}/" \
               | $WORKSPACE/bin/kubectl apply -n ${NAMESPACE} -f -
 
-            echo "🔐 Ensuring kaniko-builder ServiceAccount and RBAC exist in ${NAMESPACE}..."
+            echo "Ensuring kaniko-builder ServiceAccount and RBAC exist in ${NAMESPACE}..."
             $WORKSPACE/bin/kubectl get sa kaniko-builder -n ${NAMESPACE} >/dev/null 2>&1 \
               || $WORKSPACE/bin/kubectl create serviceaccount kaniko-builder -n ${NAMESPACE}
 
@@ -91,7 +91,7 @@ pipeline {
                 --serviceaccount=${NAMESPACE}:kaniko-builder
             fi
 
-            echo "✅ Namespace setup complete for ${NAMESPACE}"
+            echo "Namespace setup complete for ${NAMESPACE}"
           '''
         }
       }
@@ -104,7 +104,7 @@ pipeline {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
           sh '''
             export KUBECONFIG=$WORKSPACE/.kube/config
-            echo "🚀 Launching Kaniko build for ${REPO_NAME}..."
+            echo "Launching Kaniko build for ${REPO_NAME}..."
 
             CONTEXT_URL="git://github.com/${GITHUB_USER}/${REPO_NAME}.git"
             IMAGE_DEST="${IMAGE_NAME}:${TAG}"
@@ -118,7 +118,7 @@ pipeline {
             $WORKSPACE/bin/kubectl delete job kaniko-job -n ${NAMESPACE} --ignore-not-found=true
             $WORKSPACE/bin/kubectl apply -f kaniko-job.yaml -n ${NAMESPACE}
             $WORKSPACE/bin/kubectl wait --for=condition=complete job/kaniko-job -n ${NAMESPACE} --timeout=15m
-            echo "✅ Kaniko build completed."
+            echo "Kaniko build completed."
             $WORKSPACE/bin/kubectl logs job/kaniko-job -n ${NAMESPACE} || true
           '''
         }
@@ -130,7 +130,7 @@ pipeline {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
           sh '''
             export KUBECONFIG=$WORKSPACE/.kube/config
-            echo "🔍 Running Trivy vulnerability scan..."
+            echo "Running Trivy vulnerability scan..."
 
             IMAGE_DEST="${IMAGE_NAME}:${TAG}"
             sed "s|__IMAGE_DEST__|${IMAGE_DEST}|g" $WORKSPACE/ci/kubernetes/trivy.yaml > trivy-job.yaml
@@ -138,7 +138,7 @@ pipeline {
             $WORKSPACE/bin/kubectl delete job trivy-scan -n ${NAMESPACE} --ignore-not-found=true
             $WORKSPACE/bin/kubectl apply -f trivy-job.yaml -n ${NAMESPACE}
             $WORKSPACE/bin/kubectl wait --for=condition=complete job/trivy-scan -n ${NAMESPACE} --timeout=5m || true
-            echo "📜 Trivy scan results:"
+            echo "Trivy scan results:"
             $WORKSPACE/bin/kubectl logs job/trivy-scan -n ${NAMESPACE} || true
           '''
         }
@@ -150,7 +150,7 @@ pipeline {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
           sh '''
             export KUBECONFIG=$WORKSPACE/.kube/config
-            echo "⚙️ Deploying ${APP_NAME} via Helm..."
+            echo "Deploying ${APP_NAME} via Helm..."
 
             $WORKSPACE/bin/helm upgrade --install ${APP_NAME} $WORKSPACE/charts/app \
               --namespace ${NAMESPACE} \
@@ -169,7 +169,7 @@ pipeline {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
           sh '''
             export KUBECONFIG=$WORKSPACE/.kube/config
-            echo "🩺 Running Helm test for ${APP_NAME}..."
+            echo "Running Helm test for ${APP_NAME}..."
             $WORKSPACE/bin/helm test ${APP_NAME} --namespace ${NAMESPACE} --logs --timeout 2m
           '''
         }
@@ -186,7 +186,7 @@ pipeline {
       echo "❌ Pipeline failed."
     }
     always {
-      echo "🧹 Cleaning up Kubernetes jobs..."
+      echo "Cleaning up Kubernetes jobs..."
       withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
         sh '''
           export KUBECONFIG=$WORKSPACE/.kube/config

@@ -2910,5 +2910,325 @@
       "Prefer expressive constructs over clever tricks",
       "Use code reviews to surface confusing areas"
     ]
+  },
+  {
+    "title": "Go Interfaces: Accept Interfaces, Return Structs",
+    "category": "effective-go",
+    "text": "Accept interfaces for flexibility; return concrete types to avoid forcing abstractions on callers.",
+    "explain": "This pattern lets callers define minimal contracts while keeping implementation details concrete and swappable.",
+    "useCases": [
+      "Library APIs",
+      "Dependency injection",
+      "Testing with mocks"
+    ],
+    "tips": [
+      "Keep interfaces small and focused",
+      "Return concrete types unless polymorphism is needed",
+      "Define interfaces at the point of use"
+    ]
+  },
+  {
+    "title": "Go Error Handling: Explicit and Early",
+    "category": "effective-go",
+    "text": "Check errors immediately and propagate them with context instead of panic or silent failure.",
+    "explain": "Go's explicit error handling makes failures visible and forces callers to decide how to handle them.",
+    "useCases": [
+      "File I/O operations",
+      "Network requests",
+      "Database queries"
+    ],
+    "tips": [
+      "Use fmt.Errorf with %w for wrapping",
+      "Return errors early with guard clauses",
+      "Log at boundaries, not every layer"
+    ]
+  },
+  {
+    "title": "Go Defer: Resource Cleanup",
+    "category": "effective-go",
+    "text": "Use defer to guarantee cleanup happens regardless of return path, keeping allocation and release close together.",
+    "explain": "Defer executes functions in LIFO order when surrounding function returns, preventing resource leaks.",
+    "useCases": [
+      "Closing files and connections",
+      "Releasing locks",
+      "Rolling back transactions"
+    ],
+    "tips": [
+      "Place defer right after acquiring resources",
+      "Be mindful of defer performance in tight loops",
+      "Check errors from deferred functions when critical"
+    ]
+  },
+  {
+    "title": "Go Struct Embedding: Composition Over Inheritance",
+    "category": "effective-go",
+    "text": "Embed types to compose behaviors without inheritance hierarchies, promoting flexibility and testing.",
+    "explain": "Embedding promotes fields and methods to the outer struct, enabling delegation patterns without coupling.",
+    "useCases": [
+      "Adding behaviors to existing types",
+      "Building middleware patterns",
+      "Creating test doubles"
+    ],
+    "tips": [
+      "Embed interfaces for behavior composition",
+      "Override embedded methods when needed",
+      "Avoid deep embedding hierarchies"
+    ]
+  },
+  {
+    "title": "Go Channels: Communicate by Sharing Memory",
+    "category": "effective-go",
+    "text": "Use channels to synchronize goroutines and pass data safely without explicit locks.",
+    "explain": "Channels provide built-in synchronization, making concurrent code easier to reason about than shared memory.",
+    "useCases": [
+      "Pipeline patterns",
+      "Fan-out/fan-in concurrency",
+      "Cancellation signals"
+    ],
+    "tips": [
+      "Close channels from the sender side",
+      "Use buffered channels for known capacity",
+      "Select with default for non-blocking operations"
+    ]
+  },
+  {
+    "title": "Go Package Design: Internal vs Public",
+    "category": "effective-go",
+    "text": "Use internal/ directories to hide implementation details and export minimal public APIs.",
+    "explain": "The internal/ directory prevents external imports, enforcing API boundaries at compile time.",
+    "useCases": [
+      "Library development",
+      "Microservice modularity",
+      "Preventing API sprawl"
+    ],
+    "tips": [
+      "Keep exported APIs stable",
+      "Document public functions thoroughly",
+      "Move implementation to internal/ as APIs stabilize"
+    ]
+  },
+  {
+    "title": "Go Testing: Table-Driven Tests",
+    "category": "effective-go",
+    "text": "Table-driven tests express multiple scenarios compactly while keeping test logic DRY.",
+    "explain": "Define test cases as structs in a slice, then loop over them to run identical assertions with different inputs.",
+    "useCases": [
+      "Validation functions",
+      "Parsers and formatters",
+      "Business logic with many edge cases"
+    ],
+    "tips": [
+      "Name test cases for easy debugging",
+      "Use t.Run for subtests",
+      "Include both happy paths and error cases"
+    ]
+  },
+  {
+    "title": "Go Context: Request-Scoped Values",
+    "category": "effective-go",
+    "text": "Context carries request-scoped data like trace IDs without polluting function signatures.",
+    "explain": "Use context.WithValue sparingly for cross-cutting concerns; prefer explicit parameters for domain data.",
+    "useCases": [
+      "Distributed tracing",
+      "Authentication tokens",
+      "Request IDs"
+    ],
+    "tips": [
+      "Define typed keys to avoid collisions",
+      "Never store data that affects function behavior",
+      "Check context cancellation regularly"
+    ]
+  },
+  {
+    "title": "Go Zero Values: Useful Defaults",
+    "category": "effective-go",
+    "text": "Design types so their zero value is useful without explicit initialization.",
+    "explain": "Zero values reduce boilerplate and make APIs more ergonomic by working correctly out of the box.",
+    "useCases": [
+      "sync.Mutex (usable when zero)",
+      "bytes.Buffer (empty but functional)",
+      "Custom types with optional config"
+    ],
+    "tips": [
+      "Document zero-value behavior",
+      "Avoid requiring constructors when possible",
+      "Use pointers for fields that must be set"
+    ]
+  },
+  {
+    "title": "Go Generics: Type Parameters",
+    "category": "effective-go",
+    "text": "Use generics for type-safe containers and algorithms without sacrificing performance or readability.",
+    "explain": "Generics eliminate casting and duplication while maintaining type safety at compile time.",
+    "useCases": [
+      "Generic data structures (stacks, queues)",
+      "Map/filter/reduce utilities",
+      "Type-safe API wrappers"
+    ],
+    "tips": [
+      "Constrain with interfaces when needed",
+      "Avoid premature generalization",
+      "Benchmark generic vs specialized code"
+    ]
+  },
+  {
+    "title": "Layered Architecture",
+    "category": "architecture",
+    "text": "Layered architecture organizes code into horizontal tiers with strict dependencies flowing downward.",
+    "explain": "Classic layers include presentation, business logic, and data access. Each layer depends only on layers below it.",
+    "useCases": [
+      "Traditional web applications",
+      "Enterprise systems",
+      "MVC frameworks"
+    ],
+    "tips": [
+      "Enforce layer boundaries with packages",
+      "Avoid circular dependencies",
+      "Keep business logic layer pure"
+    ]
+  },
+  {
+    "title": "Onion Architecture",
+    "category": "architecture",
+    "text": "Onion architecture places domain at the center, with dependencies pointing inward toward core logic.",
+    "explain": "Infrastructure and UI depend on domain interfaces, allowing the core to remain framework-agnostic.",
+    "useCases": [
+      "Domain-driven design projects",
+      "Testable business logic",
+      "Multi-platform applications"
+    ],
+    "tips": [
+      "Define domain interfaces in the core",
+      "Implement adapters in outer layers",
+      "Test domain without infrastructure"
+    ]
+  },
+  {
+    "title": "Clean Architecture",
+    "category": "architecture",
+    "text": "Clean architecture separates concerns into concentric circles with dependency rules pointing inward.",
+    "explain": "Entities, use cases, interface adapters, and frameworks form layers that protect business rules from external changes.",
+    "useCases": [
+      "Long-lived systems",
+      "Frequent technology changes",
+      "Multiple delivery mechanisms"
+    ],
+    "tips": [
+      "Keep use cases framework-independent",
+      "Map between layer DTOs at boundaries",
+      "Invert dependencies with interfaces"
+    ]
+  },
+  {
+    "title": "Repository Pattern",
+    "category": "architecture",
+    "text": "Repository pattern abstracts data access behind a collection-like interface, decoupling domain from persistence.",
+    "explain": "Repositories provide CRUD operations and queries without exposing database details to business logic.",
+    "useCases": [
+      "Domain-driven design",
+      "Switching databases",
+      "Testing without real data stores"
+    ],
+    "tips": [
+      "Define repository interfaces in domain",
+      "Keep queries domain-centric",
+      "Avoid leaking ORMs into domain"
+    ]
+  },
+  {
+    "title": "Unit of Work Pattern",
+    "category": "architecture",
+    "text": "Unit of Work tracks changes to objects and coordinates writing them as a single transaction.",
+    "explain": "By batching updates, Unit of Work ensures consistency and reduces round trips to the database.",
+    "useCases": [
+      "Multi-entity transactions",
+      "Complex domain operations",
+      "ORM frameworks"
+    ],
+    "tips": [
+      "Commit or rollback atomically",
+      "Track entity state changes",
+      "Combine with Repository pattern"
+    ]
+  },
+  {
+    "title": "Strangler Fig Pattern",
+    "category": "architecture",
+    "text": "Strangler fig gradually replaces legacy systems by routing traffic to new implementations piece by piece.",
+    "explain": "Incremental migration reduces risk and allows validation at each step without big-bang rewrites.",
+    "useCases": [
+      "Monolith to microservices",
+      "Legacy system modernization",
+      "Technology stack migrations"
+    ],
+    "tips": [
+      "Start with low-risk modules",
+      "Use routing layers for gradual cutover",
+      "Maintain parallel systems during transition"
+    ]
+  },
+  {
+    "title": "Backend for Frontend (BFF)",
+    "category": "architecture",
+    "text": "BFF creates dedicated backend services tailored to specific frontend needs, avoiding one-size-fits-all APIs.",
+    "explain": "Each client type (web, mobile, desktop) gets an optimized API gateway that aggregates and shapes data.",
+    "useCases": [
+      "Multi-platform applications",
+      "Mobile vs web optimization",
+      "GraphQL aggregation layers"
+    ],
+    "tips": [
+      "Keep BFFs thin and focused",
+      "Share business logic in services",
+      "Version BFFs independently"
+    ]
+  },
+  {
+    "title": "Sidecar Pattern",
+    "category": "architecture",
+    "text": "Sidecar deploys helper processes alongside main application containers to add cross-cutting capabilities.",
+    "explain": "Sidecars handle concerns like logging, monitoring, or proxying without changing application code.",
+    "useCases": [
+      "Service mesh proxies",
+      "Log aggregation",
+      "Configuration injection"
+    ],
+    "tips": [
+      "Keep sidecars lightweight",
+      "Use shared volumes for communication",
+      "Monitor sidecar resource usage"
+    ]
+  },
+  {
+    "title": "Ambassador Pattern",
+    "category": "architecture",
+    "text": "Ambassador pattern proxies network requests to handle retries, circuit breaking, and observability transparently.",
+    "explain": "The ambassador sits between application and remote services, adding resilience without application changes.",
+    "useCases": [
+      "Legacy application modernization",
+      "Adding retries to existing services",
+      "Protocol translation"
+    ],
+    "tips": [
+      "Configure policies centrally",
+      "Monitor ambassador health",
+      "Version ambassadors separately"
+    ]
+  },
+  {
+    "title": "Adapter Pattern in Microservices",
+    "category": "architecture",
+    "text": "Adapter pattern translates between incompatible interfaces, enabling integration without modifying existing services.",
+    "explain": "Adapters wrap external APIs or legacy systems to expose consistent interfaces to your domain.",
+    "useCases": [
+      "Third-party API integration",
+      "Legacy system facades",
+      "Protocol conversion"
+    ],
+    "tips": [
+      "Keep adapters stateless",
+      "Handle errors at adapter boundary",
+      "Version adapters with upstream changes"
+    ]
   }
 ]

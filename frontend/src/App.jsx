@@ -6,15 +6,17 @@ import QuizView from './components/QuizView';
 import ResultView from './components/ResultView';
 import TypingView from './components/TypingView';
 import ProModeView from './components/ProModeView';
-import { getLessons, getReadingLesson, addLessonToQuiz, startQuiz, answerQuiz } from './api';
+import AILessonGenerator from './components/AILessonGenerator';
+import { getLessons, getReadingLesson, addLessonToQuiz, startQuiz, answerQuiz, getAIConfig } from './api';
 
 export default function App() {
-  const [mode, setMode] = useState('dashboard'); // dashboard | reading | quiz | result | typing | promode
+  const [mode, setMode] = useState('dashboard'); // dashboard | reading | quiz | result | typing | promode | ai-generate
   const [coins, setCoins] = useState(parseInt(localStorage.getItem('coins')||'0',10));
   const [xp, setXp] = useState(parseInt(localStorage.getItem('xp')||'0',10));
   const [quizStreak, setQuizStreak] = useState(parseInt(localStorage.getItem('quizStreak')||'0',10));
   const [typingStreak, setTypingStreak] = useState(parseInt(localStorage.getItem('typingStreak')||'0',10));
   const [typingBest, setTypingBest] = useState(parseInt(localStorage.getItem('typingBest')||'0',10));
+  const [aiEnabled, setAiEnabled] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('any');
@@ -30,6 +32,11 @@ export default function App() {
         setCategories(list);
       })
       .catch(()=>{});
+    
+    // Check AI feature flag
+    getAIConfig()
+      .then(config => setAiEnabled(config.aiEnabled || false))
+      .catch(() => setAiEnabled(false));
   }, []);
   useEffect(() => { localStorage.setItem('coins', String(coins)); }, [coins]);
   useEffect(() => { localStorage.setItem('xp', String(xp)); }, [xp]);
@@ -75,6 +82,18 @@ export default function App() {
     if (typeof s.xpTotal === 'number') setXp(s.xpTotal);
     setMode('reading');
   }
+  
+  async function startAIGenerate() {
+    setMode('ai-generate');
+  }
+  
+  function handleAILessonGenerated(result) {
+    if (result.lesson) {
+      setCurrentLesson(result.lesson);
+      setMode('reading');
+    }
+  }
+  
   async function nextConcept() {
     if (currentLesson?.title) {
       await addLessonToQuiz(currentLesson.title);
@@ -151,8 +170,17 @@ export default function App() {
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
             onStartLearn={startReading}
+            onStartAI={aiEnabled ? startAIGenerate : null}
             onStartTyping={()=>setMode('typing')}
             onStartProMode={()=>setMode('promode')}
+          />
+        )}
+
+        {mode === 'ai-generate' && (
+          <AILessonGenerator
+            categories={categories}
+            onLessonGenerated={handleAILessonGenerated}
+            onCancel={() => setMode('dashboard')}
           />
         )}
 

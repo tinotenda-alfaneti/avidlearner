@@ -17,6 +17,7 @@ export default function Dashboard({
   selectedCategory = 'any',
   onSelectCategory = () => {},
   onStartLearn,
+  onStartAI,
   onStartTyping,
   onStartProMode
 }) {
@@ -35,16 +36,23 @@ export default function Dashboard({
     { label: 'Typing Best', value: typingBest },
   ];
 
+  const learnActions = [
+    { label: 'Launch Learn Mode', onClick: onStartLearn },
+  ];
+
+  // Add AI option if enabled
+  if (onStartAI) {
+    learnActions.push({ label: '✨ Generate AI Lesson', onClick: onStartAI });
+  }
+
   return (
     <div className="dashboard-grid">
       <ModeCard
         title="Learn Mode"
         description="Collect coins by studying lessons and answering quizzes."
         badges={learnBadges}
-        actions={[
-          { label: 'Launch Learn Mode', onClick: onStartLearn },
-        ]}
-        footer='Tip: Pick a category or leave "Any" to rotate through everything.'
+        actions={learnActions}
+        footer={onStartAI ? 'Tip: Use AI to generate custom lessons on any topic!' : 'Tip: Pick a category or leave "Any" to rotate through everything.'}
       />
 
       <ModeCard

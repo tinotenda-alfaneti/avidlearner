@@ -4,6 +4,27 @@ export async function getLessons() {
   return res.json();
 }
 
+// AI Configuration
+export async function getAIConfig() {
+  const res = await fetch('/api/ai/config');
+  if (!res.ok) return { aiEnabled: false };
+  return res.json();
+}
+
+// Generate AI lesson
+export async function generateAILesson(category, topic) {
+  const res = await fetch('/api/ai/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category, topic })
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: 'Failed to generate lesson' }));
+    throw new Error(error.error || 'Failed to generate lesson');
+  }
+  return res.json();
+}
+
 export async function randomLesson(category = 'any') {
   const res = await fetch(`/api/random?category=${encodeURIComponent(category)}`);
   if (!res.ok) throw new Error('No lesson available');
