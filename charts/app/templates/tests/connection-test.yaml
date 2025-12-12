@@ -9,7 +9,8 @@ metadata:
     "helm.sh/hook": test
 spec:
   containers:
-    - name: wget
-      image: busybox
-      command: ['sh', '-c', 'wget -qO- http://{{ .Release.Name }}:80/healthz']
+    - name: curl
+      image: curlimages/curl:8.5.0
+      imagePullPolicy: IfNotPresent
+      command: ['curl', '-f', 'http://{{ .Release.Name }}:80/healthz']
   restartPolicy: Never
