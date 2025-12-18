@@ -97,7 +97,22 @@ pipeline {
       }
     }
 
-
+    stage('Run Tests') {
+      steps {
+        echo "Running backend tests..."
+        sh '''
+          cd $WORKSPACE/backend
+          go test ./... -v -cover
+        '''
+        
+        echo "Running frontend tests..."
+        sh '''
+          cd $WORKSPACE/frontend
+          npm ci
+          npm test -- --run
+        '''
+      }
+    }
 
     stage('Build Image with Kaniko') {
       steps {

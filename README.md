@@ -68,6 +68,15 @@ docker run -p 8081:8081 avidlearner
 ```
 Open http://localhost:8081
 
+## Testing
+
+Comprehensive unit tests are available for both backend and frontend.
+
+```bash
+# Run all tests
+pwsh scripts/test-all.ps1
+```
+
 ## AI Feature Configuration
 
 The AI lesson generation feature is **disabled by default** and controlled via environment variables.
