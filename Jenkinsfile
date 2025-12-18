@@ -87,11 +87,11 @@ pipeline {
             *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
           esac
 
-          curl -sSLo node.tar.xz https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz
+          curl -sSLo node.tar.gz https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz
           rm -rf "$WORKSPACE/node"
           mkdir -p "$WORKSPACE/node"
-          tar -xJf node.tar.xz -C "$WORKSPACE/node" --strip-components=1
-          rm node.tar.xz
+          tar -xzf node.tar.gz -C "$WORKSPACE/node" --strip-components=1
+          rm node.tar.gz
         '''
       }
     }
