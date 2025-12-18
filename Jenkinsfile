@@ -73,6 +73,29 @@ pipeline {
       }
     }
 
+    stage('Install Node.js') {
+      steps {
+        echo 'Installing Node.js...'
+        sh '''
+          NODE_VERSION=20.18.1
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64)  NODE_ARCH=x64 ;;
+            aarch64) NODE_ARCH=arm64 ;;
+            arm64)   NODE_ARCH=arm64 ;;
+            armv7l)  NODE_ARCH=armv7l ;;
+            *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
+          esac
+
+          curl -sSLo node.tar.xz https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz
+          rm -rf "$WORKSPACE/node"
+          mkdir -p "$WORKSPACE/node"
+          tar -xJf node.tar.xz -C "$WORKSPACE/node" --strip-components=1
+          rm node.tar.xz
+        '''
+      }
+    }
+
     stage('Verify Cluster Access') {
       steps {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG_FILE')]) {
@@ -131,6 +154,9 @@ pipeline {
         
         echo "Running frontend tests..."
         sh '''
+          export PATH="$WORKSPACE/node/bin:$PATH"
+          node --version
+          npm --version
           cd $WORKSPACE/frontend
           npm ci
           npm test -- --run
