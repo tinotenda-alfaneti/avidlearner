@@ -4,97 +4,87 @@ import Dashboard from '../components/Dashboard'
 
 describe('Dashboard Component', () => {
   const defaultProps = {
-    onStartReading: vi.fn(),
-    onStartQuiz: vi.fn(),
+    onStartLearn: vi.fn(),
     onStartTyping: vi.fn(),
     onStartProMode: vi.fn(),
-    onStartAIGenerate: vi.fn(),
+    onStartAI: null,
     coins: 100,
     xp: 500,
     quizStreak: 5,
     typingStreak: 3,
     typingBest: 85,
-    categories: ['Go', 'Python', 'JavaScript'],
+    categoryOptions: ['Go', 'Python', 'JavaScript'],
     selectedCategory: 'any',
-    onCategoryChange: vi.fn(),
-    aiEnabled: false
+    onSelectCategory: vi.fn()
   }
 
   it('renders dashboard with stats', () => {
     render(<Dashboard {...defaultProps} />)
 
-    expect(screen.getByText(/100/)).toBeInTheDocument() // coins
-    expect(screen.getByText(/500/)).toBeInTheDocument() // xp
+    const coinsBadges = screen.getAllByText(/Coins: 100/)
+    expect(coinsBadges.length).toBeGreaterThan(0)
+    expect(screen.getByText(/XP: 500/)).toBeInTheDocument()
   })
 
   it('renders learn mode section', () => {
     render(<Dashboard {...defaultProps} />)
 
-    expect(screen.getByText(/Learn Mode/i)).toBeInTheDocument()
-    expect(screen.getByText(/Start Reading/i)).toBeInTheDocument()
-    expect(screen.getByText(/Take Quiz/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Learn Mode/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Launch Learn Mode/i })).toBeInTheDocument()
   })
 
-  it('calls onStartReading when Start Reading clicked', () => {
+  it('calls onStartLearn when Launch Learn Mode clicked', () => {
     render(<Dashboard {...defaultProps} />)
 
-    const readingButton = screen.getByText(/Start Reading/i)
-    fireEvent.click(readingButton)
+    const learnButton = screen.getByText(/Launch Learn Mode/i)
+    fireEvent.click(learnButton)
 
-    expect(defaultProps.onStartReading).toHaveBeenCalledTimes(1)
+    expect(defaultProps.onStartLearn).toHaveBeenCalledTimes(1)
   })
 
-  it('calls onStartQuiz when Take Quiz clicked', () => {
+  it('calls onStartProMode when Launch Coding Mode clicked', () => {
     render(<Dashboard {...defaultProps} />)
 
-    const quizButton = screen.getByText(/Take Quiz/i)
-    fireEvent.click(quizButton)
+    const codingButton = screen.getByText(/Launch Coding Mode/i)
+    fireEvent.click(codingButton)
 
-    expect(defaultProps.onStartQuiz).toHaveBeenCalledTimes(1)
+    expect(defaultProps.onStartProMode).toHaveBeenCalledTimes(1)
   })
 
   it('calls onStartTyping when typing button clicked', () => {
     render(<Dashboard {...defaultProps} />)
 
-    const typingButton = screen.getByText(/Start Typing/i) || screen.getByText(/Typing/i)
-    if (typingButton) {
-      fireEvent.click(typingButton)
-      expect(defaultProps.onStartTyping).toHaveBeenCalledTimes(1)
-    }
+    const typingButton = screen.getByText(/Launch Typing Mode/i)
+    fireEvent.click(typingButton)
+    expect(defaultProps.onStartTyping).toHaveBeenCalledTimes(1)
   })
 
-  it('calls onStartProMode when Pro Mode button clicked', () => {
+  it('renders coding mode section', () => {
     render(<Dashboard {...defaultProps} />)
 
-    const proButton = screen.getByText(/Pro Mode/i) || screen.getByText(/Coding/i)
-    if (proButton) {
-      fireEvent.click(proButton)
-      expect(defaultProps.onStartProMode).toHaveBeenCalled()
-    }
+    expect(screen.getByRole('heading', { name: /Coding Mode/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Launch Coding Mode/i })).toBeInTheDocument()
   })
 
   it('shows AI Generate button when AI is enabled', () => {
-    const propsWithAI = { ...defaultProps, aiEnabled: true }
+    const propsWithAI = { ...defaultProps, onStartAI: vi.fn() }
     render(<Dashboard {...propsWithAI} />)
 
-    const aiButton = screen.queryByText(/AI.*Generate/i) || screen.queryByText(/Generate/i)
+    const aiButton = screen.getByText(/Generate AI Lesson/i)
     expect(aiButton).toBeInTheDocument()
   })
 
   it('hides AI Generate button when AI is disabled', () => {
     render(<Dashboard {...defaultProps} />)
 
-    const aiButton = screen.queryByText(/AI.*Generate/i)
-    // Button should either not exist or not be visible when AI disabled
-    if (aiButton) {
-      expect(aiButton).not.toBeVisible()
-    }
+    const aiButton = screen.queryByText(/Generate AI Lesson/i)
+    expect(aiButton).not.toBeInTheDocument()
   })
 
   it('displays quiz streak correctly', () => {
     render(<Dashboard {...defaultProps} />)
 
-    expect(screen.getByText(/5/)).toBeInTheDocument()
+    expect(screen.getByText(/Quiz Streak: 5/)).toBeInTheDocument()
   })
 
   it('displays typing stats correctly', () => {
@@ -104,33 +94,28 @@ describe('Dashboard Component', () => {
     expect(screen.getByText(/85/)).toBeInTheDocument() // best WPM
   })
 
-  it('renders category selector', () => {
+  it('renders typing mode section', () => {
     render(<Dashboard {...defaultProps} />)
 
-    // Category selector should be present
-    const categoryElement = screen.queryByText(/any/i) || screen.queryByDisplayValue(/any/i)
-    expect(categoryElement).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Typing Mode/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Launch Typing Mode/i })).toBeInTheDocument()
   })
 
-  it('calls onCategoryChange when category selected', () => {
-    const { container } = render(<Dashboard {...defaultProps} />)
+  it('calls onStartAI when AI button clicked', () => {
+    const onStartAI = vi.fn()
+    const propsWithAI = { ...defaultProps, onStartAI }
+    render(<Dashboard {...propsWithAI} />)
 
-    const select = container.querySelector('select')
-    if (select) {
-      fireEvent.change(select, { target: { value: 'Go' } })
-      expect(defaultProps.onCategoryChange).toHaveBeenCalledWith('Go')
-    }
+    const aiButton = screen.getByText(/Generate AI Lesson/i)
+    fireEvent.click(aiButton)
+    expect(onStartAI).toHaveBeenCalledTimes(1)
   })
 
-  it('renders all available categories', () => {
+  it('displays all mode cards', () => {
     render(<Dashboard {...defaultProps} />)
 
-    // Check if categories are available
-    defaultProps.categories.forEach(category => {
-      const element = screen.queryByText(category)
-      if (element) {
-        expect(element).toBeInTheDocument()
-      }
-    })
+    expect(screen.getByRole('heading', { name: /Learn Mode/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Coding Mode/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Typing Mode/i })).toBeInTheDocument()
   })
 })

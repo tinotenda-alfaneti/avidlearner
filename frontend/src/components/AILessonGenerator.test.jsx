@@ -9,7 +9,7 @@ describe('AILessonGenerator Component', () => {
   const defaultProps = {
     categories: ['Go', 'Python', 'JavaScript'],
     onLessonGenerated: vi.fn(),
-    onBack: vi.fn()
+    onCancel: vi.fn()
   }
 
   beforeEach(() => {
@@ -20,8 +20,8 @@ describe('AILessonGenerator Component', () => {
     render(<AILessonGenerator {...defaultProps} />)
     
     expect(screen.getByText(/Generate AI Lesson/i)).toBeInTheDocument()
-    expect(screen.getByText(/Category/i)).toBeInTheDocument()
-    expect(screen.getByText(/Topic/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Category/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Topic/i)).toBeInTheDocument()
   })
 
   it('renders all categories in select', () => {
@@ -79,7 +79,7 @@ describe('AILessonGenerator Component', () => {
     const topicInput = screen.getByRole('textbox') || screen.getByPlaceholderText(/topic/i)
     fireEvent.change(topicInput, { target: { value: 'goroutines' } })
     
-    const generateButton = screen.getByText(/Generate/i)
+    const generateButton = screen.getByRole('button', { name: /Generate Lesson/i })
     fireEvent.click(generateButton)
     
     await waitFor(() => {
@@ -101,7 +101,7 @@ describe('AILessonGenerator Component', () => {
     const topicInput = screen.getByRole('textbox') || screen.getByPlaceholderText(/topic/i)
     fireEvent.change(topicInput, { target: { value: 'goroutines' } })
     
-    const generateButton = screen.getByText(/Generate/i)
+    const generateButton = screen.getByRole('button', { name: /Generate Lesson/i })
     fireEvent.click(generateButton)
     
     await waitFor(() => {
@@ -119,7 +119,7 @@ describe('AILessonGenerator Component', () => {
     const topicInput = screen.getByRole('textbox') || screen.getByPlaceholderText(/topic/i)
     fireEvent.change(topicInput, { target: { value: 'test' } })
     
-    const generateButton = screen.getByText(/Generate/i)
+    const generateButton = screen.getByRole('button', { name: /Generate Lesson/i })
     fireEvent.click(generateButton)
     
     // Should show loading state
@@ -134,7 +134,7 @@ describe('AILessonGenerator Component', () => {
     const topicInput = screen.getByRole('textbox') || screen.getByPlaceholderText(/topic/i)
     fireEvent.change(topicInput, { target: { value: 'test' } })
     
-    const generateButton = screen.getByText(/Generate/i)
+    const generateButton = screen.getByRole('button', { name: /Generate Lesson/i })
     fireEvent.click(generateButton)
     
     await waitFor(() => {
@@ -142,23 +142,24 @@ describe('AILessonGenerator Component', () => {
     })
   })
 
-  it('calls onBack when back button clicked', () => {
+  it('calls onCancel when cancel button clicked', () => {
     render(<AILessonGenerator {...defaultProps} />)
     
-    const backButton = screen.getByText(/Back/i) || screen.getByText(/Cancel/i)
-    if (backButton) {
-      fireEvent.click(backButton)
-      expect(defaultProps.onBack).toHaveBeenCalled()
-    }
+    const cancelButton = screen.getByRole('button', { name: /Cancel/i })
+    fireEvent.click(cancelButton)
+    expect(defaultProps.onCancel).toHaveBeenCalled()
   })
 
-  it('disables generate button when topic is empty', () => {
+  it('shows error when generating with empty topic', async () => {
     render(<AILessonGenerator {...defaultProps} />)
     
-    const generateButton = screen.getByText(/Generate/i)
+    const generateButton = screen.getByRole('button', { name: /Generate Lesson/i })
+    fireEvent.click(generateButton)
     
-    // Button should be disabled initially
-    expect(generateButton).toBeDisabled()
+    // Should show error message
+    await waitFor(() => {
+      expect(screen.getByText(/enter a topic/i)).toBeInTheDocument()
+    })
   })
 
   it('enables generate button when topic is provided', () => {
@@ -167,7 +168,7 @@ describe('AILessonGenerator Component', () => {
     const topicInput = screen.getByRole('textbox') || screen.getByPlaceholderText(/topic/i)
     fireEvent.change(topicInput, { target: { value: 'goroutines' } })
     
-    const generateButton = screen.getByText(/Generate/i)
+    const generateButton = screen.getByRole('button', { name: /Generate Lesson/i })
     expect(generateButton).not.toBeDisabled()
   })
 })

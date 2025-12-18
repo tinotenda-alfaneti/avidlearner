@@ -29,10 +29,8 @@ describe('ModeCard Component', () => {
   it('renders all badges', () => {
     render(<ModeCard {...defaultProps} />)
     
-    expect(screen.getByText('Coins')).toBeInTheDocument()
-    expect(screen.getByText('100')).toBeInTheDocument()
-    expect(screen.getByText('Streak')).toBeInTheDocument()
-    expect(screen.getByText('5')).toBeInTheDocument()
+    expect(screen.getByText('Coins: 100')).toBeInTheDocument()
+    expect(screen.getByText('Streak: 5')).toBeInTheDocument()
   })
 
   it('renders action buttons', () => {
