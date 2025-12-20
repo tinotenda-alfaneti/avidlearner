@@ -46,7 +46,12 @@ describe('API Module', () => {
         status: 500
       })
 
+      // Mock localStorage to return null so fallback doesn't work
+      const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null)
+
       await expect(getLessons()).rejects.toThrow('Failed to load lessons')
+      
+      getItemSpy.mockRestore()
     })
   })
 
