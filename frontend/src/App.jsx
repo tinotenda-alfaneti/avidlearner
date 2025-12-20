@@ -7,6 +7,9 @@ import ResultView from './components/ResultView';
 import TypingView from './components/TypingView';
 import ProModeView from './components/ProModeView';
 import AILessonGenerator from './components/AILessonGenerator';
+import Leaderboard from './components/Leaderboard';
+import NameInputModal from './components/NameInputModal';
+import OfflineIndicator from './components/OfflineIndicator';
 import { getLessons, getReadingLesson, addLessonToQuiz, startQuiz, answerQuiz, getAIConfig } from './api';
 
 export default function App() {
@@ -17,6 +20,9 @@ export default function App() {
   const [typingStreak, setTypingStreak] = useState(parseInt(localStorage.getItem('typingStreak')||'0',10));
   const [typingBest, setTypingBest] = useState(parseInt(localStorage.getItem('typingBest')||'0',10));
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [pendingScore, setPendingScore] = useState(null);
 
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('any');
@@ -31,7 +37,13 @@ export default function App() {
         const list = (d.categories || []).slice().sort((a, b) => a.localeCompare(b));
         setCategories(list);
       })
-      .catch(()=>{});
+      .catch((err) => {
+        console.error('Failed to load lessons:', err);
+        // Check if error is offline-related
+        if (err.offline) {
+          console.log('Offline mode: using cached data if available');
+        }
+      });
     
     // Check AI feature flag
     getAIConfig()
@@ -77,10 +89,19 @@ export default function App() {
 
   // ---------- Reading flow ----------
   async function startReading() {
-    const s = await getReadingLesson(resolveCategory());
-    setCurrentLesson(s.lesson);
-    if (typeof s.xpTotal === 'number') setXp(s.xpTotal);
-    setMode('reading');
+    try {
+      const s = await getReadingLesson(resolveCategory());
+      setCurrentLesson(s.lesson);
+      if (typeof s.xpTotal === 'number') setXp(s.xpTotal);
+      setMode('reading');
+    } catch (err) {
+      console.error('Failed to start reading:', err);
+      if (err.offline) {
+        alert('You are offline. Reading mode requires an internet connection for session tracking.');
+      } else {
+        alert('Failed to load lesson. Please try again.');
+      }
+    }
   }
   
   async function startAIGenerate() {
@@ -95,21 +116,37 @@ export default function App() {
   }
   
   async function nextConcept() {
-    if (currentLesson?.title) {
-      await addLessonToQuiz(currentLesson.title);
+    try {
+      if (currentLesson?.title) {
+        await addLessonToQuiz(currentLesson.title);
+      }
+      const s = await getReadingLesson(resolveCategory());
+      setCurrentLesson(s.lesson);
+      if (typeof s.xpTotal === 'number') setXp(s.xpTotal);
+    } catch (err) {
+      console.error('Failed to load next concept:', err);
+      if (err.offline) {
+        alert('You are offline. Cannot load next lesson.');
+      }
     }
-    const s = await getReadingLesson(resolveCategory());
-    setCurrentLesson(s.lesson);
-    if (typeof s.xpTotal === 'number') setXp(s.xpTotal);
   }
   async function beginQuiz() {
-    if (currentLesson?.title) {
-      await addLessonToQuiz(currentLesson.title);
+    try {
+      if (currentLesson?.title) {
+        await addLessonToQuiz(currentLesson.title);
+      }
+      const q = await startQuiz();
+      setQuizQuestion({ question: q.question, options: q.options, index: q.index, total: q.total });
+      if (typeof q.xpTotal === 'number') setXp(q.xpTotal);
+      setMode('quiz');
+    } catch (err) {
+      console.error('Failed to start quiz:', err);
+      if (err.offline) {
+        alert('You are offline. Quiz mode requires an internet connection.');
+      } else {
+        alert('Failed to start quiz. Please try again.');
+      }
     }
-    const q = await startQuiz();
-    setQuizQuestion({ question: q.question, options: q.options, index: q.index, total: q.total });
-    if (typeof q.xpTotal === 'number') setXp(q.xpTotal);
-    setMode('quiz');
   }
 
   // ---------- Quiz flow ----------
@@ -151,10 +188,21 @@ export default function App() {
     }
   }
 
+  function promptLeaderboardSubmit(score, mode, category = '') {
+    setPendingScore({ score, mode, category });
+    setShowNameInput(true);
+  }
+
+  function handleLeaderboardSuccess() {
+    setShowNameInput(false);
+    setPendingScore(null);
+    setShowLeaderboard(true);
+  }
+
   return (
     <>
       <header>
-        <div className="brand">⚡ AvidLearner — Software Engineering</div>
+        <div className="brand">AvidLearner — Software Engineering</div>
         {headerRight()}
       </header>
 
@@ -173,6 +221,7 @@ export default function App() {
             onStartAI={aiEnabled ? startAIGenerate : null}
             onStartTyping={()=>setMode('typing')}
             onStartProMode={()=>setMode('promode')}
+            onOpenLeaderboard={() => setShowLeaderboard(true)}
           />
         )}
 
@@ -192,6 +241,7 @@ export default function App() {
             message={result.message}
             onContinue={doneResult}
             onExit={()=>setMode('dashboard')}
+            onSubmitToLeaderboard={() => promptLeaderboardSubmit(quizStreak, 'quiz')}
           />
         )}
 
@@ -225,6 +275,7 @@ export default function App() {
             xp={xp}
             onCoinsChange={setCoins}
             onXpChange={setXp}
+            onSubmitToLeaderboard={(score) => promptLeaderboardSubmit(score, 'coding')}
             onExit={()=>setMode('dashboard')}
           />
         )}
@@ -237,11 +288,29 @@ export default function App() {
             onSelectCategory={handleSelectCategory}
             typingBest={typingBest}
             onTypingStats={handleTypingStats}
+            onSubmitToLeaderboard={(wpm) => promptLeaderboardSubmit(wpm, 'typing')}
             onExit={()=>setMode('dashboard')}
           />
         )}
 
       </div>
+
+      <OfflineIndicator />
+
+      {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
+      
+      {showNameInput && pendingScore && (
+        <NameInputModal
+          score={pendingScore.score}
+          mode={pendingScore.mode}
+          category={pendingScore.category}
+          onSuccess={handleLeaderboardSuccess}
+          onSkip={() => {
+            setShowNameInput(false);
+            setPendingScore(null);
+          }}
+        />
+      )}
     </>
   );
 }

@@ -86,7 +86,7 @@ export default function AILessonGenerator({ categories, onLessonGenerated, onCan
               className="btn-primary"
               disabled={loading}
             >
-              {loading ? '⏳ Generating...' : '✨ Generate Lesson'}
+              {loading ? 'Generating...' : 'Generate Lesson'}
             </button>
             <button
               type="button"
@@ -100,7 +100,7 @@ export default function AILessonGenerator({ categories, onLessonGenerated, onCan
         </form>
 
         <div className="ai-tips">
-          <p><strong>💡 Tips:</strong></p>
+          <p><strong>Tips:</strong></p>
           <ul>
             <li>Be specific with your topic for better results</li>
             <li>Generation takes 10-20 seconds</li>

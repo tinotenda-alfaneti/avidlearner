@@ -14,9 +14,10 @@ Single container app: Go backend + React frontend (Vite) with optional PWA insta
 ├── charts/              # Helm chart + k8s manifests
 ├── data/
 │   ├── lessons.json     # 70+ lessons (expanded dataset)
-│   └── pro_challenges.json
+│   ├── pro_challenges.json
+│   └── leaderboard.json # Persistent leaderboard storage
 ├── backend/
-│   ├── main.go          # API endpoints
+│   ├── main.go          # API endpoints (includes leaderboard with validation)
 │   ├── go.mod
 │   ├── config/
 │   │   └── features.go  # Feature flag system
@@ -29,9 +30,11 @@ Single container app: Go backend + React frontend (Vite) with optional PWA insta
 │   │   ├── components/
 │   │   │   ├── AILessonGenerator.jsx
 │   │   │   ├── Dashboard.jsx
+│   │   │   ├── Leaderboard.jsx       # Global leaderboard view
+│   │   │   ├── NameInputModal.jsx    # Score submission modal
 │   │   │   ├── LessonView.jsx
 │   │   │   └── ...
-│   │   ├── api.js       # API client (with AI endpoints)
+│   │   ├── api.js       # API client (with AI & leaderboard endpoints)
 │   │   └── App.jsx
 │   └── vite.config.js   # proxies /api to :8081 in dev
 ├── scripts/
@@ -119,6 +122,44 @@ Set `ENABLE_AI_LESSONS=false` in your `.env` file and restart. The AI option wil
 
 For detailed configuration, costs, and troubleshooting, see [docs/AI_FEATURE.md](docs/AI_FEATURE.md).
 
+## Leaderboard System
+
+AvidLearner includes a **secure, global leaderboard** for all game modes with server-side validation to prevent cheating.
+
+### Features
+
+✅ **Three Game Modes**: Quiz, Typing, and Coding challenges  
+✅ **Anti-Cheat Protection**: All scores validated server-side  
+✅ **Persistent Storage**: Scores survive server restarts  
+✅ **Global Rankings**: Everyone competes on the same leaderboard  
+✅ **Easy Submission**: Click "Submit to Leaderboard" after completing any game
+
+### How to Use
+
+1. **Play Any Game**: Complete a quiz, typing test, or coding challenge
+2. **Submit Your Score**: Click the "Submit to Leaderboard" button that appears
+3. **Enter Your Name**: Type your name (max 30 characters)
+4. **View Rankings**: Click "View Leaderboard" on the dashboard to see top scores
+
+### Score Types
+
+- **Quiz Mode**: Number of correct answers in your quiz session
+- **Typing Mode**: Words per minute (WPM) from your typing test
+- **Coding Mode**: Total XP earned from completed challenges
+
+### Security
+
+All scores are **validated server-side** to ensure legitimacy:
+- The backend tracks your actual gameplay in real-time
+- When you submit, your claimed score is validated against the server's record
+- Fake scores are rejected with a 403 Forbidden error
+- This makes it impossible to cheat using browser dev tools
+
+For detailed information, see:
+- [Leaderboard Security Documentation](docs/LEADERBOARD_SECURITY.md)
+- [Leaderboard UI Guide](docs/LEADERBOARD_UI_GUIDE.md)
+- [Complete Implementation Details](docs/LEADERBOARD_IMPLEMENTATION.md)
+
 A production build exposes the service worker and manifest, so the site behaves as a PWA (installable / offline support).
 
 ## API
@@ -127,8 +168,13 @@ A production build exposes the service worker and manifest, so the site behaves 
 - `GET /api/session?stage=lesson` → returns a lesson and primes a quiz
 - `GET /api/session?stage=quiz` → returns question + options
 - `GET /api/session?stage=result&answer=A|B|C|D` → evaluates, updates coins/streak
+- `GET /api/leaderboard?mode=quiz|typing|coding` → returns top 100 scores
+- `POST /api/leaderboard/submit` → submit score (validated server-side)
+- `POST /api/typing/score` → update typing score for session
 
 State is kept per-browser via a cookie (`sid`) and in-memory on the server runtime.
+Leaderboard data is persisted to `data/leaderboard.json` and survives restarts.
+
 You can replace `data/lessons.json` with a model-generated dataset using the same schema without breaking the UI.
 ```
 [

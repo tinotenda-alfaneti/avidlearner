@@ -32,6 +32,7 @@ export default function ProModeView({
   xp,
   onCoinsChange = () => {},
   onXpChange = () => {},
+  onSubmitToLeaderboard,
   onExit = () => {},
 }) {
   const [topic, setTopic] = useState('');
@@ -228,6 +229,15 @@ export default function ProModeView({
             >
               {hintBusy ? 'Fetching...' : 'Hint (-2 coins)'}
             </button>
+            {onSubmitToLeaderboard && banner?.type === 'ok' && (
+              <button
+                className="badge badge-button"
+                onClick={() => onSubmitToLeaderboard(xp)}
+                style={{ backgroundColor: '#27ae60' }}
+              >
+                Submit to Leaderboard
+              </button>
+            )}
             <button
               className="badge badge-button"
               onClick={() => loadChallenge(topic, difficulty)}

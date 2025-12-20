@@ -8,6 +8,15 @@ registerSW({
   immediate: true,
   onOfflineReady() {
     console.log('AvidLearner is ready to work offline.')
+  },
+  onNeedRefresh() {
+    console.log('New content available, please refresh.')
+  },
+  onRegistered(registration) {
+    console.log('Service Worker registered:', registration)
+  },
+  onRegisterError(error) {
+    console.error('Service Worker registration failed:', error)
   }
 })
 

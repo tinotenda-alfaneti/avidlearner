@@ -112,6 +112,21 @@ type profile struct {
 	LastLesson    *Lesson
 	RecentLessons []string
 	HintIdx       map[string]int // challengeID -> next hint index
+	PlayerName    string         // for leaderboard
+
+	QuizScore       int       // Current quiz session score
+	TypingScore     int       // Best typing score this session
+	CodingScore     int       // Coding challenges score
+	LastScoreSubmit time.Time // Prevent spam submissions
+}
+
+// Leaderboard entry
+type LeaderboardEntry struct {
+	Name     string    `json:"name"`
+	Score    int       `json:"score"`
+	Mode     string    `json:"mode"` // "quiz", "typing", "coding"
+	Date     time.Time `json:"date"`
+	Category string    `json:"category,omitempty"`
 }
 
 func newProfile() *profile {
@@ -127,6 +142,7 @@ var (
 	sessions          = map[string]*profile{} // sid -> profile
 	proChallenges     []ProChallenge
 	proChallengesByID map[string]ProChallenge
+	leaderboard       []LeaderboardEntry // in-memory leaderboard
 )
 
 // ---------- Main ----------
@@ -166,6 +182,30 @@ func main() {
 		log.Fatalf("failed to load pro challenges from %s: %v", proPath, pcErr)
 	}
 
+	// Load leaderboard from disk
+	leaderboardPath := os.Getenv("LEADERBOARD_FILE")
+	if leaderboardPath == "" {
+		leaderboardPath = filepath.Join("..", "data", "leaderboard.json")
+		if _, err := os.Stat(filepath.Dir(leaderboardPath)); os.IsNotExist(err) {
+			leaderboardPath = filepath.Join("data", "leaderboard.json")
+		}
+	}
+	if err := loadLeaderboard(leaderboardPath); err != nil {
+		log.Printf("Warning: failed to load leaderboard from %s: %v (starting fresh)", leaderboardPath, err)
+		leaderboard = []LeaderboardEntry{}
+	}
+
+	// Save leaderboard periodically
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			if err := saveLeaderboard(leaderboardPath); err != nil {
+				log.Printf("Error saving leaderboard: %v", err)
+			}
+		}
+	}()
+
 	// Static frontend (vite build output)
 	frontendDist := filepath.Join("frontend", "dist")
 	if _, err := os.Stat(frontendDist); os.IsNotExist(err) {
@@ -188,6 +228,9 @@ func main() {
 	http.HandleFunc("/api/prochallenge", cors(handleProChallenge))
 	http.HandleFunc("/api/prochallenge/submit", cors(handleProChallengeSubmit))
 	http.HandleFunc("/api/prochallenge/hint", cors(handleProChallengeHint))
+	http.HandleFunc("/api/leaderboard", cors(handleLeaderboard))
+	http.HandleFunc("/api/leaderboard/submit", cors(handleLeaderboardSubmit))
+	http.HandleFunc("/api/typing/score", cors(handleTypingScore))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -228,6 +271,36 @@ func loadProChallenges(path string) ([]ProChallenge, map[string]ProChallenge, er
 		byID[ch.ID] = ch
 	}
 	return list, byID, nil
+}
+
+func loadLeaderboard(path string) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // Fresh start is OK
+		}
+		return err
+	}
+	var entries []LeaderboardEntry
+	if err := json.Unmarshal(b, &entries); err != nil {
+		return err
+	}
+	leaderboard = entries
+	return nil
+}
+
+func saveLeaderboard(path string) error {
+	// Ensure directory exists
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	b, err := json.MarshalIndent(leaderboard, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, b, 0644)
 }
 
 func pickRandomLesson(cat string) *Lesson {
@@ -494,6 +567,7 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 			// shuffle questions
 			mrand.Shuffle(len(p.CurrentQuiz), func(i, j int) { p.CurrentQuiz[i], p.CurrentQuiz[j] = p.CurrentQuiz[j], p.CurrentQuiz[i] })
 			p.QuizIndex = 0
+			p.QuizScore = 0 // Reset score for new quiz
 			first := p.CurrentQuiz[0]
 			_ = json.NewEncoder(w).Encode(SessionState{
 				Stage:      "quiz",
@@ -526,6 +600,7 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 				earned = 10
 				p.Coins += earned
 				p.Streak += 1
+				p.QuizScore++ // Track correct answers server-side
 			} else {
 				p.Streak = 0
 			}
@@ -644,6 +719,7 @@ func handleProChallengeSubmit(w http.ResponseWriter, r *http.Request) {
 	if res.Passed {
 		p.Coins += ch.Reward.Coins
 		p.XP += ch.Reward.XP
+		p.CodingScore += ch.Reward.XP // Track coding score for leaderboard
 		resp := map[string]any{
 			"passed":      true,
 			"total":       res.Total,
@@ -1021,6 +1097,204 @@ func handleAIConfig(w http.ResponseWriter, r *http.Request) {
 		"aiEnabled": flags.IsAILessonsEnabled(),
 		"provider":  flags.GetAIProvider(),
 		"maxPerDay": flags.GetMaxAILessonsPerDay(),
+	}
+
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+// ---------- Leaderboard ----------
+
+// handleLeaderboard returns the leaderboard, optionally filtered by mode
+func handleLeaderboard(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	mode := r.URL.Query().Get("mode")
+	limit := 100 // default limit
+
+	filtered := []LeaderboardEntry{}
+	for _, entry := range leaderboard {
+		if mode == "" || entry.Mode == mode {
+			filtered = append(filtered, entry)
+		}
+	}
+
+	// Sort by score descending
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].Score > filtered[j].Score
+	})
+
+	// Apply limit
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+
+	_ = json.NewEncoder(w).Encode(filtered)
+}
+
+// handleLeaderboardSubmit submits a score to the leaderboard
+func handleLeaderboardSubmit(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	p := getProfile(r)
+
+	var req struct {
+		Name     string `json:"name"`
+		Score    int    `json:"score"`
+		Mode     string `json:"mode"`
+		Category string `json:"category"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Name == "" {
+		req.Name = "Anonymous"
+	}
+	if req.Mode == "" {
+		http.Error(w, `{"error":"mode is required"}`, http.StatusBadRequest)
+		return
+	}
+	if req.Score < 0 {
+		http.Error(w, `{"error":"invalid score"}`, http.StatusBadRequest)
+		return
+	}
+
+	// SERVER-SIDE VALIDATION: Check if score is legitimate
+	var validatedScore int
+	switch req.Mode {
+	case "quiz":
+		validatedScore = p.QuizScore
+		if req.Score > validatedScore {
+			http.Error(w, `{"error":"invalid score: server validation failed"}`, http.StatusForbidden)
+			return
+		}
+	case "typing":
+		validatedScore = p.TypingScore
+		if req.Score > validatedScore {
+			http.Error(w, `{"error":"invalid score: server validation failed"}`, http.StatusForbidden)
+			return
+		}
+	case "coding":
+		validatedScore = p.CodingScore
+		if req.Score > validatedScore {
+			http.Error(w, `{"error":"invalid score: server validation failed"}`, http.StatusForbidden)
+			return
+		}
+	default:
+		http.Error(w, `{"error":"invalid mode"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Prevent spam submissions (1 minute cooldown)
+	if time.Since(p.LastScoreSubmit) < time.Minute {
+		http.Error(w, `{"error":"please wait before submitting another score"}`, http.StatusTooManyRequests)
+		return
+	}
+	p.LastScoreSubmit = time.Now()
+
+	// Use validated score from server, not client-submitted score
+	req.Score = validatedScore
+
+	// Sanitize name
+	if len(req.Name) > 30 {
+		req.Name = req.Name[:30]
+	}
+
+	entry := LeaderboardEntry{
+		Name:     req.Name,
+		Score:    req.Score,
+		Mode:     req.Mode,
+		Category: req.Category,
+		Date:     time.Now(),
+	}
+
+	leaderboard = append(leaderboard, entry)
+
+	// Keep only top 1000 entries to prevent memory issues
+	if len(leaderboard) > 1000 {
+		sort.Slice(leaderboard, func(i, j int) bool {
+			return leaderboard[i].Score > leaderboard[j].Score
+		})
+		leaderboard = leaderboard[:1000]
+	}
+
+	// Save to disk immediately
+	leaderboardPath := os.Getenv("LEADERBOARD_FILE")
+	if leaderboardPath == "" {
+		leaderboardPath = filepath.Join("..", "data", "leaderboard.json")
+		if _, err := os.Stat(filepath.Dir(leaderboardPath)); os.IsNotExist(err) {
+			leaderboardPath = filepath.Join("data", "leaderboard.json")
+		}
+	}
+	if err := saveLeaderboard(leaderboardPath); err != nil {
+		log.Printf("Error saving leaderboard: %v", err)
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"rank":    calculateRank(entry),
+		"message": "Score submitted successfully!",
+	}
+
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+// calculateRank determines the player's rank on the leaderboard
+func calculateRank(entry LeaderboardEntry) int {
+	rank := 1
+	for _, e := range leaderboard {
+		if e.Mode == entry.Mode && e.Score > entry.Score {
+			rank++
+		}
+	}
+	return rank
+}
+
+// handleTypingScore updates the typing score for the session
+func handleTypingScore(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	p := getProfile(r)
+
+	var req struct {
+		Score int `json:"score"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Score < 0 {
+		http.Error(w, `{"error":"invalid score"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Update typing score (keep best)
+	if req.Score > p.TypingScore {
+		p.TypingScore = req.Score
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"score":   p.TypingScore,
 	}
 
 	_ = json.NewEncoder(w).Encode(response)

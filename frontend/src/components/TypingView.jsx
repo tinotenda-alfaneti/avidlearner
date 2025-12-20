@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { randomLesson } from '../api';
+import { randomLesson, updateTypingScore } from '../api';
 
 function categoryLabel(value) {
   if (value === 'any') return 'Any';
@@ -15,6 +15,7 @@ export default function TypingView({
   onSelectCategory,
   onTypingStats,
   typingBest = 0,
+  onSubmitToLeaderboard,
 }) {
   const [lesson, setLesson] = useState(null);
   const [text, setText] = useState('');
@@ -102,6 +103,10 @@ export default function TypingView({
   useEffect(() => {
     if (!running && lesson && typed) {
       onTypingStats && onTypingStats({ streak: statsRef.current.streak, best: statsRef.current.best });
+      // Update server-side typing score
+      updateTypingScore(statsRef.current.wpm).catch(err => {
+        console.error('Failed to update typing score:', err);
+      });
     }
   }, [running, lesson, typed, onTypingStats]);
 
@@ -179,9 +184,14 @@ export default function TypingView({
         <div className="typing-summary">
           <p>WPM <b>{stats.wpm}</b> · Accuracy <b>{stats.acc}%</b></p>
         
-          <div className="row" style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div className="row" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button className="primary" onClick={start}>Next</button>
-            <button className="primary" style={{ backgroundColor: 'red' }} onClick={()=>onExit && onExit()}>End </button>
+            {onSubmitToLeaderboard && stats.wpm > 0 && (
+              <button className="primary secondary" onClick={() => onSubmitToLeaderboard(stats.wpm)}>
+                Submit to Leaderboard
+              </button>
+            )}
+            <button className="primary" style={{ backgroundColor: '#e74c3c' }} onClick={()=>onExit && onExit()}>End</button>
           </div>
         </div>
       )}
