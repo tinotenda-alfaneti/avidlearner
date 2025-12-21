@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-54d0af47'], (function (workbox) { 'use strict';
+define(['./workbox-e7681877'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -82,11 +82,35 @@ define(['./workbox-54d0af47'], (function (workbox) { 'use strict';
     "revision": "d41d8cd98f00b204e9800998ecf8427e"
   }, {
     "url": "index.html",
-    "revision": "0.u3f9gv92vi"
+    "revision": "0.plrfol4l4n8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/]
   }));
+  workbox.registerRoute(/^https?:\/\/[^/]+\/api\/lessons$/, new workbox.NetworkFirst({
+    "cacheName": "lessons-cache",
+    "networkTimeoutSeconds": 10,
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 10,
+      maxAgeSeconds: 86400
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https?:\/\/[^/]+\/api\/random\?/, new workbox.NetworkFirst({
+    "cacheName": "random-lessons-cache",
+    "networkTimeoutSeconds": 10,
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 50,
+      maxAgeSeconds: 3600
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https?:\/\/[^/]+\/api\/session\?/, new workbox.NetworkFirst({
+    "cacheName": "session-cache",
+    "networkTimeoutSeconds": 10,
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 30,
+      maxAgeSeconds: 1800
+    })]
+  }), 'GET');
 
 }));

@@ -32,6 +32,7 @@ type Lesson struct {
 	Explain  string   `json:"explain"`
 	UseCases []string `json:"useCases"`
 	Tips     []string `json:"tips"`
+	Source   string   `json:"source,omitempty"` // "local", "github", "devto"
 }
 
 type LessonsResponse struct {
@@ -195,6 +196,7 @@ func main() {
 			Explain:  l.Explain,
 			UseCases: l.UseCases,
 			Tips:     l.Tips,
+			Source:   l.Source,
 		}
 		lessonsByCat[l.Category] = append(lessonsByCat[l.Category], mainLesson)
 	}
@@ -204,6 +206,21 @@ func main() {
 	sort.Strings(categories)
 
 	log.Printf("Loaded %d lessons total (%d local + external)", len(allLessons), len(loaded))
+
+	// Periodically refresh lesson map from fetcher (every 10 minutes)
+	go func() {
+		// Wait a bit for first external fetch, then refresh immediately
+		time.Sleep(15 * time.Second)
+		allLessons := lessonFetcher.GetLessons(context.Background())
+		updateLessonMap(allLessons)
+
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			allLessons := lessonFetcher.GetLessons(context.Background())
+			updateLessonMap(allLessons)
+		}
+	}()
 
 	// Load pro challenges
 	proPath := os.Getenv("PRO_CHALLENGES_FILE")
@@ -278,6 +295,33 @@ func main() {
 }
 
 // ---------- Helpers ----------
+
+func updateLessonMap(allLessons []lessons.Lesson) {
+	newLessonsByCat := map[string][]Lesson{}
+	newCategories := []string{}
+
+	for _, l := range allLessons {
+		mainLesson := Lesson{
+			Title:    l.Title,
+			Category: l.Category,
+			Text:     l.Text,
+			Explain:  l.Explain,
+			UseCases: l.UseCases,
+			Tips:     l.Tips,
+			Source:   l.Source,
+		}
+		newLessonsByCat[l.Category] = append(newLessonsByCat[l.Category], mainLesson)
+	}
+	for cat := range newLessonsByCat {
+		newCategories = append(newCategories, cat)
+	}
+	sort.Strings(newCategories)
+
+	// Atomic update of globals
+	lessonsByCat = newLessonsByCat
+	categories = newCategories
+	log.Printf("Refreshed lesson map: %d lessons total", len(allLessons))
+}
 
 func loadLessons(path string) ([]Lesson, error) {
 	b, err := os.ReadFile(path)
@@ -1114,10 +1158,21 @@ func handleAIGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Convert AI lesson to main Lesson type
+	mainLesson := &Lesson{
+		Title:    lesson.Title,
+		Category: lesson.Category,
+		Text:     lesson.Text,
+		Explain:  lesson.Explain,
+		UseCases: lesson.UseCases,
+		Tips:     lesson.Tips,
+		Source:   "ai",
+	}
+
 	// Return the generated lesson
 	response := SessionState{
 		Stage:   "lesson",
-		Lesson:  (*Lesson)(lesson),
+		Lesson:  mainLesson,
 		Message: "AI-generated lesson",
 	}
 
