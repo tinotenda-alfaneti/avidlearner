@@ -20,6 +20,7 @@ import (
 
 	"avidlearner/ai"
 	"avidlearner/config"
+	"avidlearner/lessons"
 )
 
 // ---------- Models ----------
@@ -143,6 +144,7 @@ var (
 	proChallenges     []ProChallenge
 	proChallengesByID map[string]ProChallenge
 	leaderboard       []LeaderboardEntry // in-memory leaderboard
+	lessonFetcher     *lessons.Fetcher
 )
 
 // ---------- Main ----------
@@ -159,14 +161,49 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load lessons from %s: %v", dataPath, err)
 	}
+
+	// Convert loaded lessons to lessons.Lesson type
+	localLessons := make([]lessons.Lesson, len(loaded))
+	for i, l := range loaded {
+		localLessons[i] = lessons.Lesson{
+			Title:    l.Title,
+			Category: l.Category,
+			Text:     l.Text,
+			Explain:  l.Explain,
+			UseCases: l.UseCases,
+			Tips:     l.Tips,
+			Source:   "local",
+		}
+	}
+
+	// Initialize hybrid lesson fetcher (cache TTL: 6 hours)
+	lessonFetcher = lessons.NewFetcher(localLessons, 6*time.Hour)
+
+	// Start background refresh (every 6 hours)
+	lessonFetcher.StartBackgroundRefresh(context.Background(), 6*time.Hour)
+
+	// Get initial lessons (local + external)
+	allLessons := lessonFetcher.GetLessons(context.Background())
+
+	// Build category map from all lessons
 	lessonsByCat = map[string][]Lesson{}
-	for _, l := range loaded {
-		lessonsByCat[l.Category] = append(lessonsByCat[l.Category], l)
+	for _, l := range allLessons {
+		mainLesson := Lesson{
+			Title:    l.Title,
+			Category: l.Category,
+			Text:     l.Text,
+			Explain:  l.Explain,
+			UseCases: l.UseCases,
+			Tips:     l.Tips,
+		}
+		lessonsByCat[l.Category] = append(lessonsByCat[l.Category], mainLesson)
 	}
 	for cat := range lessonsByCat {
 		categories = append(categories, cat)
 	}
 	sort.Strings(categories)
+
+	log.Printf("Loaded %d lessons total (%d local + external)", len(allLessons), len(loaded))
 
 	// Load pro challenges
 	proPath := os.Getenv("PRO_CHALLENGES_FILE")
