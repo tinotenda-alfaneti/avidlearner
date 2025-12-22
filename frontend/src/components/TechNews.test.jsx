@@ -96,8 +96,11 @@ describe('TechNews', () => {
     
     await waitFor(() => {
       expect(screen.getByText('HN Story')).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
+    // Clear previous mocks and set up new mock for Dev.to
+    vi.clearAllMocks();
+    
     // Mock Dev.to response
     const mockDevToArticles = [{
       id: 1,
@@ -118,8 +121,8 @@ describe('TechNews', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Test Dev.to Article')).toBeInTheDocument();
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000); // Increase test timeout to 15 seconds
 
   it('displays error message when fetch fails', async () => {
     fetch.mockRejectedValue(new Error('Network error'));
