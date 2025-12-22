@@ -1,13 +1,41 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TechNews from './TechNews';
 
 global.fetch = vi.fn();
 
+// Mock navigator.onLine
+const mockOnline = (isOnline) => {
+  Object.defineProperty(navigator, 'onLine', {
+    writable: true,
+    value: isOnline
+  });
+};
+
+// Mock localStorage
+const localStorageMock = (() => {
+  let store = {};
+  return {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => { store[key] = value; },
+    clear: () => { store = {}; }
+  };
+})();
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock
+});
+
 describe('TechNews', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorageMock.clear();
+    mockOnline(true);
+  });
+
+  afterEach(() => {
+    mockOnline(true);
   });
 
   it('renders loading state initially', () => {
@@ -125,6 +153,111 @@ describe('TechNews', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/1h ago/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows cached news when offline', async () => {
+    // First, fetch news while online
+    const mockStory = {
+      id: 1,
+      title: 'Cached Story',
+      url: 'https://example.com',
+      score: 100,
+      by: 'user',
+      time: Date.now() / 1000,
+      descendants: 10
+    };
+
+    fetch
+      .mockResolvedValueOnce({ json: async () => [1] })
+      .mockResolvedValueOnce({ json: async () => mockStory });
+
+    const { unmount } = render(<TechNews />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cached Story')).toBeInTheDocument();
+    });
+
+    unmount();
+
+    // Now go offline and render again
+    mockOnline(false);
+    
+    render(<TechNews />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cached Story')).toBeInTheDocument();
+      expect(screen.getByText(/offline - showing cached news/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows error when offline and no cache available', async () => {
+    mockOnline(false);
+    
+    render(<TechNews />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/you are offline and no cached news is available/i)).toBeInTheDocument();
+    });
+    
+    // Retry button should not be shown when offline
+    expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+  });
+
+  it('hides retry button when offline', async () => {
+    mockOnline(false);
+    
+    render(<TechNews />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/you are offline/i)).toBeInTheDocument();
+    });
+    
+    expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+  });
+
+  it('shows retry button when online but fetch fails', async () => {
+    fetch.mockRejectedValue(new Error('Network error'));
+
+    render(<TechNews />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+  });
+
+  it('uses cached news when fetch fails', async () => {
+    // First, fetch news successfully
+    const mockStory = {
+      id: 1,
+      title: 'Cached on Error Story',
+      url: 'https://example.com',
+      score: 100,
+      by: 'user',
+      time: Date.now() / 1000,
+      descendants: 10
+    };
+
+    fetch
+      .mockResolvedValueOnce({ json: async () => [1] })
+      .mockResolvedValueOnce({ json: async () => mockStory });
+
+    const { unmount } = render(<TechNews />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cached on Error Story')).toBeInTheDocument();
+    });
+
+    unmount();
+
+    // Now make fetch fail
+    fetch.mockRejectedValue(new Error('Network error'));
+    
+    render(<TechNews />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cached on Error Story')).toBeInTheDocument();
+      expect(screen.getByText(/using cached news/i)).toBeInTheDocument();
     });
   });
 });

@@ -6,11 +6,44 @@ const NEWS_SOURCES = {
   REDDIT: 'Reddit'
 };
 
+// Cache keys for each news source
+const CACHE_KEYS = {
+  [NEWS_SOURCES.HACKERNEWS]: 'avidlearner_news_hackernews',
+  [NEWS_SOURCES.DEVTO]: 'avidlearner_news_devto',
+  [NEWS_SOURCES.REDDIT]: 'avidlearner_news_reddit'
+};
+
+// Helper functions for localStorage
+const saveToCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    console.warn('Failed to cache news:', e);
+  }
+};
+
+const getFromCache = (key) => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    return JSON.parse(cached);
+  } catch (e) {
+    console.warn('Failed to read cached news:', e);
+    return null;
+  }
+};
+
+const isOnline = () => navigator.onLine;
+
 export default function TechNews() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeSource, setActiveSource] = useState(NEWS_SOURCES.HACKERNEWS);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     fetchNews();
@@ -19,6 +52,22 @@ export default function TechNews() {
   const fetchNews = async () => {
     setLoading(true);
     setError(null);
+    setIsOffline(false);
+    
+    const cacheKey = CACHE_KEYS[activeSource];
+    
+    // Check if offline
+    if (!isOnline()) {
+      const cached = getFromCache(cacheKey);
+      if (cached) {
+        setNews(cached.data);
+        setIsOffline(true);
+      } else {
+        setError('You are offline and no cached news is available.');
+      }
+      setLoading(false);
+      return;
+    }
     
     try {
       let articles = [];
@@ -37,10 +86,20 @@ export default function TechNews() {
           articles = await fetchHackerNews();
       }
       
+      // Save to cache
+      saveToCache(cacheKey, articles);
       setNews(articles);
     } catch (err) {
       console.error('Error fetching news:', err);
-      setError('Failed to load news. Please try again later.');
+      
+      // Try to load from cache on error
+      const cached = getFromCache(cacheKey);
+      if (cached) {
+        setNews(cached.data);
+        setError('Using cached news. Unable to fetch latest updates.');
+      } else {
+        setError('Failed to load news. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -128,6 +187,12 @@ export default function TechNews() {
         </div>
       </div>
 
+      {isOffline && !loading && !error && (
+        <div className="news-offline-banner">
+          📡 Offline - Showing cached news
+        </div>
+      )}
+
       {loading && (
         <div className="news-loading">
           <div className="spinner"></div>
@@ -135,44 +200,52 @@ export default function TechNews() {
         </div>
       )}
 
-      {error && (
+      {error && news.length === 0 && (
         <div className="news-error">
           <p>{error}</p>
-          <button onClick={fetchNews} className="retry-btn">Retry</button>
+          {isOnline() && <button onClick={fetchNews} className="retry-btn">Retry</button>}
         </div>
       )}
 
-      {!loading && !error && (
-        <div className="news-grid">
-          {news.map((article) => (
-            <div key={article.id} className="news-card">
-              <a 
-                href={article.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="news-title"
-              >
-                {article.title}
-              </a>
-              <div className="news-meta">
-                <span className="news-points">▲ {article.points}</span>
-                <span className="news-author">by {article.author}</span>
-                <span className="news-time">{formatTimeAgo(article.time)}</span>
-                <span className="news-comments">💬 {article.comments}</span>
-              </div>
-              {article.tags && (
-                <div className="news-tags">
-                  {article.tags.slice(0, 3).map(tag => (
-                    <span key={tag} className="news-tag">#{tag}</span>
-                  ))}
-                </div>
-              )}
-              {article.subreddit && (
-                <span className="news-subreddit">r/{article.subreddit}</span>
-              )}
+      {!loading && news.length > 0 && (
+        <>
+          {error && (
+            <div className="news-error" style={{ marginBottom: '20px' }}>
+              <p>{error}</p>
+              {isOnline() && <button onClick={fetchNews} className="retry-btn">Retry</button>}
             </div>
-          ))}
-        </div>
+          )}
+          <div className="news-grid">
+            {news.map((article) => (
+              <div key={article.id} className="news-card">
+                <a 
+                  href={article.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="news-title"
+                >
+                  {article.title}
+                </a>
+                <div className="news-meta">
+                  <span className="news-points">▲ {article.points}</span>
+                  <span className="news-author">by {article.author}</span>
+                  <span className="news-time">{formatTimeAgo(article.time)}</span>
+                  <span className="news-comments">💬 {article.comments}</span>
+                </div>
+                {article.tags && (
+                  <div className="news-tags">
+                    {article.tags.slice(0, 3).map(tag => (
+                      <span key={tag} className="news-tag">#{tag}</span>
+                    ))}
+                  </div>
+                )}
+                {article.subreddit && (
+                  <span className="news-subreddit">r/{article.subreddit}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
