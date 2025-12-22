@@ -1,5 +1,6 @@
 import React from 'react';
 import ModeCard from './ModeCard';
+import TechNews from './TechNews';
 
 function categoryLabel(value) {
   if (value === 'any') return 'Any';
@@ -155,6 +156,8 @@ export default function Dashboard({
           <button className="leaderboard-view-btn">View Leaderboard</button>
         </div>
       </div>
+
+      <TechNews />
     </>
   );
 }

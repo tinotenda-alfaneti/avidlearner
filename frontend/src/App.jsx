@@ -27,6 +27,8 @@ export default function App() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('any');
   const categoryRef = useRef('any');
+  const [selectedSource, setSelectedSource] = useState('all');
+  const sourceRef = useRef('all');
   const [currentLesson, setCurrentLesson] = useState(null);
   const [quizQuestion, setQuizQuestion] = useState(null); // {question,options,index,total}
   const [result, setResult] = useState(null);             // {correct,earned,total,message}
@@ -78,7 +80,21 @@ export default function App() {
     setSelectedCategory(value);
     if (mode === 'reading') {
       try {
-        const s = await getReadingLesson(resolveCategory(value));
+        const s = await getReadingLesson(resolveCategory(value), sourceRef.current);
+        setCurrentLesson(s.lesson);
+        if (typeof s.xpTotal === 'number') setXp(s.xpTotal);
+      } catch (err) {
+        // swallow; UI will keep previous lesson
+      }
+    }
+  }
+
+  async function handleSelectSource(value) {
+    sourceRef.current = value;
+    setSelectedSource(value);
+    if (mode === 'reading') {
+      try {
+        const s = await getReadingLesson(resolveCategory(), value);
         setCurrentLesson(s.lesson);
         if (typeof s.xpTotal === 'number') setXp(s.xpTotal);
       } catch (err) {
@@ -90,7 +106,7 @@ export default function App() {
   // ---------- Reading flow ----------
   async function startReading() {
     try {
-      const s = await getReadingLesson(resolveCategory());
+      const s = await getReadingLesson(resolveCategory(), sourceRef.current);
       setCurrentLesson(s.lesson);
       if (typeof s.xpTotal === 'number') setXp(s.xpTotal);
       setMode('reading');
@@ -120,7 +136,7 @@ export default function App() {
       if (currentLesson?.title) {
         await addLessonToQuiz(currentLesson.title);
       }
-      const s = await getReadingLesson(resolveCategory());
+      const s = await getReadingLesson(resolveCategory(), sourceRef.current);
       setCurrentLesson(s.lesson);
       if (typeof s.xpTotal === 'number') setXp(s.xpTotal);
     } catch (err) {
@@ -252,6 +268,9 @@ export default function App() {
             categoryOptions={categoryOptions}
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
+            selectedSource={selectedSource}
+            onSelectSource={handleSelectSource}
+            aiEnabled={aiEnabled}
             onNext={nextConcept}
             onStartQuiz={beginQuiz}
             onExit={()=>setMode('dashboard')}

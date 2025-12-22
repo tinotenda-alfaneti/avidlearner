@@ -14,6 +14,7 @@ Single container app: Go backend + React frontend (Vite) with optional PWA insta
 ├── charts/              # Helm chart + k8s manifests
 ├── data/
 │   ├── lessons.json     # 70+ lessons (expanded dataset)
+│   ├── secret_knowledge_lessons.json  # Curated content from Book of Secret Knowledge
 │   ├── pro_challenges.json
 │   └── leaderboard.json # Persistent leaderboard storage
 ├── backend/
@@ -121,6 +122,40 @@ When enabled, a "Generate AI Lesson" button appears in Learn Mode:
 Set `ENABLE_AI_LESSONS=false` in your `.env` file and restart. The AI option will disappear from the UI.
 
 For detailed configuration, costs, and troubleshooting, see [docs/AI_FEATURE.md](docs/AI_FEATURE.md).
+
+## Content Sources
+
+AvidLearner curates content from multiple high-quality sources:
+
+### Built-in Lessons
+- 70+ core software engineering lessons
+- Topics: System Design, Databases, APIs, Cloud, Security, DevOps
+
+### Book of Secret Knowledge Integration
+Automatically loads curated content from [The Book of Secret Knowledge](https://github.com/trimstray/the-book-of-secret-knowledge):
+- **20 hand-picked lessons** load immediately from static file
+- **Dynamic fetcher** pulls latest tools and resources every 6 hours
+- **Categories**: DevOps tools, Security frameworks, Network utilities, Best practices
+- **Examples**: htop, Burp Suite, Wireshark, Docker, OWASP guides
+
+### External Sources (Dynamic)
+- System Design Primer (GitHub)
+- Dev.to articles (system design, architecture tags)
+- Refreshes automatically in the background every 6 hours
+
+### AI-Generated Lessons (Optional)
+- Generate custom lessons on any topic when enabled
+- Requires API key configuration
+
+**Source Filtering**: In Learn Mode, use the source selector to focus on specific content:
+- All Sources - See everything (~240 lessons)
+- Local - 70+ curated core lessons
+- GitHub - System Design Primer content
+- Secret Knowledge - DevOps/Security tools (134 lessons)
+- Dev.to - Community articles
+- AI Generated - Custom lessons (shows "Coming Soon" when disabled)
+
+See [docs/LESSON_SOURCES.md](docs/LESSON_SOURCES.md) for details.
 
 ## Leaderboard System
 

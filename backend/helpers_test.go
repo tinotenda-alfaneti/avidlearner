@@ -279,7 +279,7 @@ func TestPickLessonForProfile(t *testing.T) {
 
 	t.Run("picks lesson and updates recent history", func(t *testing.T) {
 		p := newProfile()
-		lesson := pickLessonForProfile(p, "Go")
+		lesson := pickLessonForProfile(p, "Go", "")
 
 		if lesson == nil {
 			t.Fatal("expected lesson, got nil")
@@ -300,7 +300,7 @@ func TestPickLessonForProfile(t *testing.T) {
 
 		seen := make(map[string]int)
 		for i := 0; i < 10; i++ {
-			lesson := pickLessonForProfile(p, "Go")
+			lesson := pickLessonForProfile(p, "Go", "")
 			if lesson != nil {
 				seen[lesson.Title]++
 			}
@@ -316,7 +316,7 @@ func TestPickLessonForProfile(t *testing.T) {
 		p := newProfile()
 		// Fill with many lessons
 		for i := 0; i < lessonRepeatWindow*3; i++ {
-			pickLessonForProfile(p, "Go")
+			pickLessonForProfile(p, "Go", "")
 		}
 
 		if len(p.RecentLessons) > lessonRepeatWindow*2 {

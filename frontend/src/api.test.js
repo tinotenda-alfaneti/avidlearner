@@ -182,7 +182,7 @@ describe('API Module', () => {
 
       const result = await getReadingLesson('Go')
 
-      expect(global.fetch).toHaveBeenCalledWith('/api/session?stage=lesson&category=Go')
+      expect(global.fetch).toHaveBeenCalledWith('/api/session?stage=lesson&category=Go&source=all')
       expect(result).toEqual(mockResponse)
     })
   })

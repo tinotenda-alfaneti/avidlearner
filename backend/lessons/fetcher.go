@@ -116,9 +116,31 @@ func (f *Fetcher) refreshCache(ctx context.Context) {
 	log.Printf("Cache refreshed: %d lessons from external sources", len(allExternal))
 }
 
-// fetchFromGitHub pulls lessons from system-design-primer
+// fetchFromGitHub pulls lessons from system-design-primer and book of secret knowledge
 func (f *Fetcher) fetchFromGitHub(ctx context.Context) ([]Lesson, error) {
-	// Fetch README from system-design-primer
+	var allLessons []Lesson
+
+	// Fetch from system-design-primer
+	systemDesignLessons, err := f.fetchSystemDesignPrimer(ctx)
+	if err != nil {
+		log.Printf("Error fetching system-design-primer: %v", err)
+	} else {
+		allLessons = append(allLessons, systemDesignLessons...)
+	}
+
+	// Fetch from book-of-secret-knowledge
+	secretKnowledgeLessons, err := f.fetchSecretKnowledge(ctx)
+	if err != nil {
+		log.Printf("Error fetching book-of-secret-knowledge: %v", err)
+	} else {
+		allLessons = append(allLessons, secretKnowledgeLessons...)
+	}
+
+	return allLessons, nil
+}
+
+// fetchSystemDesignPrimer pulls lessons from system-design-primer
+func (f *Fetcher) fetchSystemDesignPrimer(ctx context.Context) ([]Lesson, error) {
 	url := "https://raw.githubusercontent.com/donnemartin/system-design-primer/master/README.md"
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -142,6 +164,33 @@ func (f *Fetcher) fetchFromGitHub(ctx context.Context) ([]Lesson, error) {
 	}
 
 	return parseGitHubMarkdown(string(body)), nil
+}
+
+// fetchSecretKnowledge pulls curated lessons from the-book-of-secret-knowledge
+func (f *Fetcher) fetchSecretKnowledge(ctx context.Context) ([]Lesson, error) {
+	url := "https://raw.githubusercontent.com/trimstray/the-book-of-secret-knowledge/master/README.md"
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := f.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("github returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseSecretKnowledgeMarkdown(string(body)), nil
 }
 
 // parseGitHubMarkdown extracts lessons from markdown content
@@ -213,6 +262,163 @@ func parseGitHubMarkdown(markdown string) []Lesson {
 	}
 
 	return lessons
+}
+
+// parseSecretKnowledgeMarkdown extracts curated lessons from the-book-of-secret-knowledge
+func parseSecretKnowledgeMarkdown(markdown string) []Lesson {
+	var lessons []Lesson
+
+	// Categories we want to extract from the book
+	categoryMap := map[string]struct {
+		keywords []string
+		category string
+		tips     []string
+	}{
+		"CLI Tools": {
+			keywords: []string{"command", "terminal", "shell", "cli"},
+			category: "devops",
+			tips:     []string{"Practice in a safe environment", "Read man pages", "Use --help flag"},
+		},
+		"Web Tools": {
+			keywords: []string{"browser", "security", "ssl", "http"},
+			category: "security",
+			tips:     []string{"Bookmark useful tools", "Understand HTTPS/TLS", "Check multiple sources"},
+		},
+		"Security": {
+			keywords: []string{"penetration", "vulnerability", "encryption"},
+			category: "security",
+			tips:     []string{"Stay ethical", "Get permission before testing", "Keep tools updated"},
+		},
+		"System Diagnostics": {
+			keywords: []string{"debug", "monitor", "performance", "troubleshoot"},
+			category: "devops",
+			tips:     []string{"Monitor proactively", "Establish baselines", "Use multiple metrics"},
+		},
+		"Network": {
+			keywords: []string{"network", "dns", "http", "tcp"},
+			category: "networking",
+			tips:     []string{"Understand OSI model", "Use tcpdump/wireshark", "Check DNS first"},
+		},
+		"Databases": {
+			keywords: []string{"database", "sql", "nosql", "query"},
+			category: "databases",
+			tips:     []string{"Index wisely", "EXPLAIN queries", "Monitor slow queries"},
+		},
+	}
+
+	// Find main sections (####)
+	sectionRegex := regexp.MustCompile(`(?m)^####\s+(.+?)(?:\s+&nbsp;)?\s*\[`)
+	matches := sectionRegex.FindAllStringSubmatchIndex(markdown, -1)
+
+	for i, match := range matches {
+		titleStart, titleEnd := match[2], match[3]
+		title := strings.TrimSpace(markdown[titleStart:titleEnd])
+
+		// Get content until next section
+		contentStart := match[1]
+		contentEnd := len(markdown)
+		if i+1 < len(matches) {
+			contentEnd = matches[i+1][0]
+		}
+
+		content := markdown[contentStart:contentEnd]
+
+		// Extract tools/resources from the section
+		toolRegex := regexp.MustCompile(`<a href="([^"]+)"><b>([^<]+)</b></a>\s*-\s*([^<\n]+)`)
+		toolMatches := toolRegex.FindAllStringSubmatch(content, 15) // Limit to 15 per section
+
+		// Determine category for this section
+		categoryInfo := struct {
+			keywords []string
+			category string
+			tips     []string
+		}{
+			keywords: []string{},
+			category: "general",
+			tips:     []string{"Research before using", "Check documentation", "Start with basics"},
+		}
+
+		for key, info := range categoryMap {
+			if strings.Contains(title, key) {
+				categoryInfo = info
+				break
+			}
+		}
+
+		// Create lessons from tools
+		for idx, toolMatch := range toolMatches {
+			if idx >= 10 { // Max 10 lessons per section to avoid overwhelming
+				break
+			}
+
+			url := toolMatch[1]
+			name := toolMatch[2]
+			description := strings.TrimSpace(toolMatch[3])
+
+			// Clean description
+			if len(description) > 150 {
+				description = description[:147] + "..."
+			}
+
+			// Create use cases based on description
+			useCases := extractUseCasesFromDescription(description)
+			if len(useCases) == 0 {
+				useCases = []string{
+					fmt.Sprintf("Learn %s", categoryInfo.category),
+					"Improve technical skills",
+				}
+			}
+
+			lesson := Lesson{
+				Title:    name,
+				Category: categoryInfo.category,
+				Text:     description,
+				Explain:  fmt.Sprintf("From The Book of Secret Knowledge: %s. Learn more at %s", title, url),
+				UseCases: useCases,
+				Tips:     categoryInfo.tips,
+				Source:   "secret-knowledge",
+			}
+
+			lessons = append(lessons, lesson)
+		}
+	}
+
+	log.Printf("Parsed %d lessons from Book of Secret Knowledge", len(lessons))
+	return lessons
+}
+
+// extractUseCasesFromDescription attempts to extract use cases from description text
+func extractUseCasesFromDescription(description string) []string {
+	var useCases []string
+	lowerDesc := strings.ToLower(description)
+
+	// Common patterns
+	patterns := map[string][]string{
+		"security":    {"Security testing", "Vulnerability assessment", "Penetration testing"},
+		"monitor":     {"System monitoring", "Performance tracking", "Resource management"},
+		"debug":       {"Debugging", "Troubleshooting", "Error analysis"},
+		"test":        {"Testing", "Quality assurance", "Validation"},
+		"network":     {"Network analysis", "Traffic monitoring", "Connectivity troubleshooting"},
+		"database":    {"Database management", "Query optimization", "Data analysis"},
+		"deployment":  {"CI/CD", "Deployment automation", "Release management"},
+		"container":   {"Container orchestration", "Microservices", "Cloud native apps"},
+		"performance": {"Performance optimization", "Benchmarking", "Load testing"},
+		"encrypt":     {"Data encryption", "Secure communication", "Privacy protection"},
+	}
+
+	for keyword, cases := range patterns {
+		if strings.Contains(lowerDesc, keyword) {
+			useCases = append(useCases, cases...)
+			break
+		}
+	}
+
+	// Limit to 3 use cases
+	if len(useCases) > 3 {
+		useCases = useCases[:3]
+	}
+
+	return useCases
 }
 
 // fetchFromDevTo pulls articles from Dev.to

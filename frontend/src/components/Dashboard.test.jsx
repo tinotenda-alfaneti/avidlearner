@@ -1,8 +1,19 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import Dashboard from '../components/Dashboard'
 
+// Mock fetch for TechNews component
+global.fetch = vi.fn();
+
 describe('Dashboard Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Mock fetch to prevent TechNews from making real API calls
+    fetch.mockResolvedValue({
+      json: async () => []
+    });
+  });
+
   const defaultProps = {
     onStartLearn: vi.fn(),
     onStartTyping: vi.fn(),

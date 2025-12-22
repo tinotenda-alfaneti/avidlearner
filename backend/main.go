@@ -162,11 +162,26 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load lessons from %s: %v", dataPath, err)
 	}
+	coreCount := len(loaded)
+
+	// Load secret knowledge lessons
+	var secretLessons []Lesson
+	secretKnowledgePath := filepath.Join("..", "data", "secret_knowledge_lessons.json")
+	if _, err := os.Stat(secretKnowledgePath); err == nil {
+		secretLessons, err = loadLessons(secretKnowledgePath)
+		if err != nil {
+			log.Printf("Warning: failed to load secret knowledge lessons: %v", err)
+		} else {
+			log.Printf("Loaded %d lessons from Book of Secret Knowledge", len(secretLessons))
+		}
+	}
 
 	// Convert loaded lessons to lessons.Lesson type
-	localLessons := make([]lessons.Lesson, len(loaded))
-	for i, l := range loaded {
-		localLessons[i] = lessons.Lesson{
+	localLessons := make([]lessons.Lesson, 0, len(loaded)+len(secretLessons))
+
+	// Add core lessons with "local" source
+	for _, l := range loaded[:coreCount] {
+		localLessons = append(localLessons, lessons.Lesson{
 			Title:    l.Title,
 			Category: l.Category,
 			Text:     l.Text,
@@ -174,7 +189,20 @@ func main() {
 			UseCases: l.UseCases,
 			Tips:     l.Tips,
 			Source:   "local",
-		}
+		})
+	}
+
+	// Add secret knowledge lessons with "secret-knowledge" source
+	for _, l := range secretLessons {
+		localLessons = append(localLessons, lessons.Lesson{
+			Title:    l.Title,
+			Category: l.Category,
+			Text:     l.Text,
+			Explain:  l.Explain,
+			UseCases: l.UseCases,
+			Tips:     l.Tips,
+			Source:   "secret-knowledge",
+		})
 	}
 
 	// Initialize hybrid lesson fetcher (cache TTL: 6 hours)
@@ -433,7 +461,7 @@ func uniqueStrings(ss []string) []string {
 	return out
 }
 
-func pickLessonForProfile(p *profile, cat string) *Lesson {
+func pickLessonForProfile(p *profile, cat string, source string) *Lesson {
 	if p == nil {
 		return pickRandomLesson(cat)
 	}
@@ -446,7 +474,22 @@ func pickLessonForProfile(p *profile, cat string) *Lesson {
 	} else {
 		pool = append(pool, lessonsByCat[cat]...)
 	}
+	log.Printf("pickLessonForProfile: after category filter, pool=%d lessons", len(pool))
+
+	// Filter by source if specified
+	if source != "" && source != "all" {
+		var filtered []Lesson
+		for _, l := range pool {
+			if l.Source == source {
+				filtered = append(filtered, l)
+			}
+		}
+		log.Printf("pickLessonForProfile: filtering by source=%s, filtered=%d lessons", source, len(filtered))
+		pool = filtered
+	}
+
 	if len(pool) == 0 {
+		log.Printf("pickLessonForProfile: pool is empty after filtering!")
 		return nil
 	}
 
@@ -544,7 +587,7 @@ func handleRandom(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	p := getProfile(r)
 	cat := r.URL.Query().Get("category")
-	lesson := pickLessonForProfile(p, cat)
+	lesson := pickLessonForProfile(p, cat, "")
 	if lesson == nil {
 		w.WriteHeader(http.StatusNotFound)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "no lessons for category"})
@@ -571,8 +614,12 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		switch stage {
 		case "lesson":
-			lesson := pickLessonForProfile(p, r.URL.Query().Get("category"))
+			cat := r.URL.Query().Get("category")
+			source := r.URL.Query().Get("source")
+			log.Printf("handleSession: category=%s, source=%s, total lessons=%d", cat, source, len(lessonsByCat))
+			lesson := pickLessonForProfile(p, cat, source)
 			if lesson == nil {
+				log.Printf("pickLessonForProfile returned nil for cat=%s, source=%s", cat, source)
 				http.Error(w, "no lessons", http.StatusInternalServerError)
 				return
 			}

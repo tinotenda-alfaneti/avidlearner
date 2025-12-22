@@ -102,12 +102,17 @@ export async function randomLesson(category = 'any') {
 }
 
 // Reading: fetch a random lesson to read
-export async function getReadingLesson(category = 'any') {
+export async function getReadingLesson(category = 'any', source = 'all') {
   if (!isOnline()) {
     throw createOfflineError();
   }
   
-  const res = await fetch(`/api/session?stage=lesson&category=${encodeURIComponent(category)}`);
+  const params = new URLSearchParams({
+    stage: 'lesson',
+    category: category,
+    source: source
+  });
+  const res = await fetch(`/api/session?${params}`);
   if (!res.ok) throw new Error('Failed to get lesson');
   return res.json();
 }
