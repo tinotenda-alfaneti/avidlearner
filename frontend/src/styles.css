@@ -1244,15 +1244,6 @@ button.home:hover {
   color: var(--accent);
 }
 
-.news-subreddit {
-  background: #ff4500;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
 @media (max-width: 768px) {
   .tech-news-header {
     flex-direction: column;

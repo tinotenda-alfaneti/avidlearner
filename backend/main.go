@@ -6,6 +6,7 @@ import (
 	crand "crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"log"
@@ -17,6 +18,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"sync"
 
 	"avidlearner/ai"
 	"avidlearner/config"
@@ -146,6 +148,18 @@ var (
 	proChallengesByID map[string]ProChallenge
 	leaderboard       []LeaderboardEntry // in-memory leaderboard
 	lessonFetcher     *lessons.Fetcher
+)
+
+// Simple in-memory cache for news feeds
+type newsCacheEntry struct {
+	ts   time.Time
+	data []byte
+}
+
+var (
+	newsCache   = map[string]newsCacheEntry{}
+	newsCacheMu sync.RWMutex
+	newsTTL     = 10 * time.Minute
 )
 
 // ---------- Main ----------

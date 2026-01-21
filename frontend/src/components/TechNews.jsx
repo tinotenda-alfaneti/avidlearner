@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 
 const NEWS_SOURCES = {
   HACKERNEWS: 'HackerNews',
-  DEVTO: 'Dev.to',
-  REDDIT: 'Reddit'
+  DEVTO: 'Dev.to'
 };
 
 // Cache keys for each news source
 const CACHE_KEYS = {
   [NEWS_SOURCES.HACKERNEWS]: 'avidlearner_news_hackernews',
   [NEWS_SOURCES.DEVTO]: 'avidlearner_news_devto',
-  [NEWS_SOURCES.REDDIT]: 'avidlearner_news_reddit'
+
 };
 
 // Helper functions for localStorage
@@ -79,9 +78,6 @@ export default function TechNews() {
         case NEWS_SOURCES.DEVTO:
           articles = await fetchDevTo();
           break;
-        case NEWS_SOURCES.REDDIT:
-          articles = await fetchReddit();
-          break;
         default:
           articles = await fetchHackerNews();
       }
@@ -144,22 +140,6 @@ export default function TechNews() {
     }));
   };
 
-  const fetchReddit = async () => {
-    // Fetch from r/programming (no auth required for public posts)
-    const res = await fetch('https://www.reddit.com/r/programming/hot.json?limit=10');
-    const data = await res.json();
-    
-    return data.data.children.map(post => ({
-      id: post.data.id,
-      title: post.data.title,
-      url: post.data.url,
-      points: post.data.ups,
-      author: post.data.author,
-      time: post.data.created_utc,
-      comments: post.data.num_comments,
-      subreddit: post.data.subreddit
-    }));
-  };
 
   const formatTimeAgo = (timestamp) => {
     const now = Date.now() / 1000;
@@ -239,9 +219,7 @@ export default function TechNews() {
                     ))}
                   </div>
                 )}
-                {article.subreddit && (
-                  <span className="news-subreddit">r/{article.subreddit}</span>
-                )}
+                
               </div>
             ))}
           </div>
