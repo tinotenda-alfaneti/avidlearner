@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 
 const NEWS_SOURCES = {
   HACKERNEWS: 'HackerNews',
-  DEVTO: 'Dev.to'
+  DEVTO: 'Dev.to',
+  ARSTECHNICA: 'Ars Technica'
 };
 
 // Cache keys for each news source
 const CACHE_KEYS = {
   [NEWS_SOURCES.HACKERNEWS]: 'avidlearner_news_hackernews',
   [NEWS_SOURCES.DEVTO]: 'avidlearner_news_devto',
+  [NEWS_SOURCES.ARSTECHNICA]: 'avidlearner_news_arstechnica',
 
 };
 
@@ -78,6 +80,9 @@ export default function TechNews() {
         case NEWS_SOURCES.DEVTO:
           articles = await fetchDevTo();
           break;
+        case NEWS_SOURCES.ARSTECHNICA:
+          articles = await fetchArsTechnica();
+          break;
         default:
           articles = await fetchHackerNews();
       }
@@ -99,6 +104,24 @@ export default function TechNews() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchArsTechnica = async () => {
+    const res = await fetch(`/api/news?source=arstechnica`);
+    if (!res.ok) {
+      throw new Error('Failed to fetch Ars Technica feed');
+    }
+    const items = await res.json();
+    return (items || []).slice(0, 10).map(it => ({
+      id: it.id,
+      title: it.title,
+      url: it.url,
+      points: it.points || 0,
+      author: it.author || '',
+      time: it.time || 0,
+      comments: it.comments || 0,
+      tags: it.tags || []
+    }));
   };
 
   const fetchHackerNews = async () => {

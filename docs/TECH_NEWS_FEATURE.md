@@ -17,6 +17,11 @@ The Tech News section displays the latest articles from popular developer commun
 - **Cost**: Free, no authentication required
 - **Tags**: Shows article tags for quick categorization
 
+### Ars Technica
+- **API**: RSS feed
+- **Content**: In-depth reporting and analysis on technology
+- **Feed**: https://arstechnica.com/feed/
+
 ### Features
 - Loading states with spinner
 - Error handling with retry button

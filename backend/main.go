@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 	"sync"
+	"time"
 
 	"avidlearner/ai"
 	"avidlearner/config"
@@ -327,6 +327,8 @@ func main() {
 	http.HandleFunc("/api/leaderboard", cors(handleLeaderboard))
 	http.HandleFunc("/api/leaderboard/submit", cors(handleLeaderboardSubmit))
 	http.HandleFunc("/api/typing/score", cors(handleTypingScore))
+	// News RSS proxy
+	http.HandleFunc("/api/news", cors(handleNewsFetch))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -410,6 +412,121 @@ func loadLeaderboard(path string) error {
 	}
 	leaderboard = entries
 	return nil
+}
+
+// ---------- News RSS Fetcher ----------
+
+type rssItem struct {
+	Title   string   `xml:"title"`
+	Link    string   `xml:"link"`
+	GUID    string   `xml:"guid"`
+	PubDate string   `xml:"pubDate"`
+	Author  string   `xml:"creator"`
+	Cats    []string `xml:"category"`
+}
+
+type rssChannel struct {
+	Items []rssItem `xml:"item"`
+}
+
+type rssDoc struct {
+	Channel rssChannel `xml:"channel"`
+}
+
+func fetchAndParseRSS(url string) ([]map[string]interface{}, error) {
+	// Check cache
+	newsCacheMu.RLock()
+	if e, ok := newsCache[url]; ok && time.Since(e.ts) < newsTTL {
+		var out []map[string]interface{}
+		if err := json.Unmarshal(e.data, &out); err == nil {
+			newsCacheMu.RUnlock()
+			return out, nil
+		}
+	}
+	newsCacheMu.RUnlock()
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var doc rssDoc
+	dec := xml.NewDecoder(resp.Body)
+	if err := dec.Decode(&doc); err != nil {
+		return nil, err
+	}
+
+	out := []map[string]interface{}{}
+	for _, it := range doc.Channel.Items {
+		// Parse pubDate
+		var ts int64
+		if it.PubDate != "" {
+			if t, err := time.Parse(time.RFC1123Z, it.PubDate); err == nil {
+				ts = t.Unix()
+			} else if t, err := time.Parse(time.RFC1123, it.PubDate); err == nil {
+				ts = t.Unix()
+			}
+		}
+
+		id := it.GUID
+		if id == "" {
+			id = it.Link
+		}
+
+		item := map[string]interface{}{
+			"id":       id,
+			"title":    it.Title,
+			"url":      it.Link,
+			"points":   0,
+			"author":   it.Author,
+			"time":     ts,
+			"comments": 0,
+			"tags":     it.Cats,
+		}
+		out = append(out, item)
+	}
+
+	// Cache result
+	if b, err := json.Marshal(out); err == nil {
+		newsCacheMu.Lock()
+		newsCache[url] = newsCacheEntry{ts: time.Now(), data: b}
+		newsCacheMu.Unlock()
+	}
+
+	return out, nil
+}
+
+func handleNewsFetch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	src := r.URL.Query().Get("source")
+	if src == "" {
+		http.Error(w, `{"error":"source is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	var url string
+	switch strings.ToLower(src) {
+	case "arstechnica", "arstechnica.com":
+		url = "https://arstechnica.com/feed/"
+	default:
+		http.Error(w, `{"error":"unsupported source"}`, http.StatusBadRequest)
+		return
+	}
+
+	items, err := fetchAndParseRSS(url)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to fetch feed: %v"}`, err), http.StatusBadGateway)
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(items)
 }
 
 func saveLeaderboard(path string) error {
