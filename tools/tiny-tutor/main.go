@@ -22,6 +22,17 @@ type Lesson struct {
 	Tips     []string `json:"tips"`
 }
 
+type ProgressEntry struct {
+	Completed     bool      `json:"completed"`
+	Attempts      int       `json:"attempts"`
+	LastCompleted time.Time `json:"lastCompleted,omitempty"`
+}
+
+var (
+	progress     map[string]ProgressEntry
+	progressPath string
+)
+
 func loadLessons(path string) ([]Lesson, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -128,8 +139,10 @@ func runQuickQuiz(lesson Lesson, all []Lesson) {
 	picked := pool[choice-1]
 	if picked == correct {
 		fmt.Println("Correct! —", correct)
+		recordAttempt(lesson.Title, true)
 	} else {
 		fmt.Println("Not quite.")
+		recordAttempt(lesson.Title, false)
 		fmt.Println("Expected:", correct)
 		fmt.Println("Why: ")
 		fmt.Println(lesson.Explain)
@@ -142,12 +155,75 @@ func runQuickQuiz(lesson Lesson, all []Lesson) {
 	}
 }
 
+func loadProgress(path string) (map[string]ProgressEntry, error) {
+	m := make(map[string]ProgressEntry)
+	b, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return m, nil
+		}
+		return nil, err
+	}
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func saveProgress(path string, m map[string]ProgressEntry) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+	b, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, b, 0644)
+}
+
+func recordAttempt(title string, correct bool) {
+	if progress == nil {
+		progress = make(map[string]ProgressEntry)
+	}
+	p := progress[title]
+	p.Attempts++
+	if correct {
+		p.Completed = true
+		p.LastCompleted = time.Now()
+	}
+	progress[title] = p
+	if progressPath != "" {
+		_ = saveProgress(progressPath, progress)
+	}
+}
+
+func printProgress() {
+	if progress == nil || len(progress) == 0 {
+		fmt.Println("No progress recorded yet.")
+		return
+	}
+	for title, p := range progress {
+		var s string
+		if p.Completed {
+			s = "completed"
+		} else {
+			s = "incomplete"
+		}
+		fmt.Printf("- %s: %s (attempts=%d", title, s, p.Attempts)
+		if !p.LastCompleted.IsZero() {
+			fmt.Printf(", last=%s", p.LastCompleted.Format(time.RFC3339))
+		}
+		fmt.Println(")")
+	}
+}
+
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	listFlag := flag.Bool("list", false, "List available lessons")
 	lessonFlag := flag.Int("lesson", 0, "Start a lesson by number (1-based)")
 	catFlag := flag.String("category", "", "Filter lessons by category")
 	fileFlag := flag.String("file", filepath.Join("..", "data", "lessons.json"), "Path to lessons JSON")
+	progressFlag := flag.String("progress", filepath.Join("..", "data", "tutor_progress.json"), "Path to progress JSON")
 	flag.Parse()
 
 	// Resolve path relative to executable if necessary
@@ -187,6 +263,19 @@ func main() {
 		return
 	}
 
+	// resolve and load progress
+	progressPath = *progressFlag
+	if !filepath.IsAbs(progressPath) {
+		progressPath = filepath.Clean(filepath.Join(exeDir, progressPath))
+	}
+	prog, err := loadProgress(progressPath)
+	if err != nil {
+		// fallback to repo-relative
+		progressPath = filepath.Join("..", "data", "tutor_progress.json")
+		prog, _ = loadProgress(progressPath)
+	}
+	progress = prog
+
 	if *lessonFlag > 0 {
 		idx := *lessonFlag - 1
 		if idx < 0 || idx >= len(filtered) {
@@ -203,7 +292,7 @@ func main() {
 	r := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Println("\nAvidLearner Tiny CLI Tutor")
-		fmt.Println("Commands: list  start <n>  filter <category>  exit")
+		fmt.Println("Commands: list  start <n>  filter <category>  progress  reset-progress  exit")
 		cmd, _ := prompt(r, "> ")
 		parts := strings.Fields(cmd)
 		if len(parts) == 0 {
@@ -212,6 +301,14 @@ func main() {
 		switch parts[0] {
 		case "list":
 			listLessons(filtered)
+		case "progress":
+			printProgress()
+		case "reset-progress":
+			progress = make(map[string]ProgressEntry)
+			if progressPath != "" {
+				_ = saveProgress(progressPath, progress)
+			}
+			fmt.Println("progress reset")
 		case "start":
 			if len(parts) < 2 {
 				fmt.Println("usage: start <number>")

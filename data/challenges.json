@@ -1,0 +1,9 @@
+[
+  {
+    "id": "sum-ints",
+    "title": "Sum two ints",
+    "description": "Implement `Sum(a, b int) int` that returns the sum of two integers.",
+    "starterCode": "package main\n\nfunc Sum(a, b int) int {\n    // TODO: implement\n    return 0\n}\n",
+    "testCode": "package main\n\nimport \"testing\"\n\nfunc TestSum(t *testing.T) {\n    tests := []struct{a,b,exp int}{ {1,2,3}, {5,7,12}, {-1,1,0} }\n    for _, tt := range tests {\n        got := Sum(tt.a, tt.b)\n        if got != tt.exp {\n            t.Fatalf(\"Sum(%d,%d) = %d; want %d\", tt.a, tt.b, got, tt.exp)\n        }\n    }\n}\n"
+  }
+]

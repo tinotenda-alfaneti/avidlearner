@@ -14,6 +14,8 @@ Single container app: Go backend + React frontend (Vite) with optional PWA insta
 ├── charts/              # Helm chart + k8s manifests
 ├── data/
 │   ├── lessons.json     # 70+ lessons (expanded dataset)
+│   ├── challenges.json  # sample coding challenges for autograder
+│   └── tutor_progress.json # tiny-tutor progress storage (created at runtime)
 │   ├── secret_knowledge_lessons.json  # Curated content from Book of Secret Knowledge
 │   ├── pro_challenges.json
 │   └── leaderboard.json # Persistent leaderboard storage
@@ -40,6 +42,9 @@ Single container app: Go backend + React frontend (Vite) with optional PWA insta
 │   └── vite.config.js   # proxies /api to :8081 in dev
 ├── scripts/
 │   └── run.ps1          # convenience launcher
+├── tools/               # small developer CLIs and utilities
+│   ├── tiny-tutor/      # terminal-first lesson tutor (tools/tiny-tutor)
+│   └── autograder/      # simple Go autograder for coding challenges
 └── README.md
 ```
 
