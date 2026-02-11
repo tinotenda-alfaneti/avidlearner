@@ -212,3 +212,26 @@ export async function updateTypingScore(score) {
   if (!res.ok) throw new Error('Failed to update typing score');
   return res.json();
 }
+
+// TLDR feed (proxy to tldr.tech or local cached feed)
+const STORAGE_KEY_TLDR = 'avidlearner_tldr_cache';
+
+export async function getTLDR(category = 'tech') {
+  if (!isOnline()) {
+    const cached = getFromLocalStorage(STORAGE_KEY_TLDR);
+    if (cached) return cached;
+    throw createOfflineError();
+  }
+
+  try {
+    const res = await fetch(`/api/news?source=tldr&category=${encodeURIComponent(category)}`);
+    if (!res.ok) throw new Error('Failed to fetch TLDRs');
+    const data = await res.json();
+    saveToLocalStorage(STORAGE_KEY_TLDR, data);
+    return data;
+  } catch (err) {
+    const cached = getFromLocalStorage(STORAGE_KEY_TLDR);
+    if (cached) return cached;
+    throw err;
+  }
+}

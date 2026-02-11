@@ -316,6 +316,8 @@ export default function App() {
 
       <OfflineIndicator />
 
+      
+
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
       
       {showNameInput && pendingScore && (

@@ -9,6 +9,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	mrand "math/rand"
 	"net/http"
@@ -515,6 +516,37 @@ func handleNewsFetch(w http.ResponseWriter, r *http.Request) {
 	switch strings.ToLower(src) {
 	case "arstechnica", "arstechnica.com":
 		url = "https://arstechnica.com/feed/"
+	case "tldr", "tldr.tech":
+		// Support RSS endpoints. If category==all, aggregate multiple TLDR RSS feeds
+		cat := strings.TrimSpace(r.URL.Query().Get("category"))
+		if cat == "" {
+			cat = "all"
+		}
+		if strings.EqualFold(cat, "all") {
+			cats := []string{"tech", "ai", "devops", "design"}
+			out := map[string][]map[string]interface{}{}
+			for _, c := range cats {
+				url := fmt.Sprintf("https://tldr.tech/api/rss/%s", c)
+				items, err := fetchAndParseRSS(url)
+				if err != nil {
+					// continue on individual feed errors
+					out[c] = []map[string]interface{}{{"title": "Failed to fetch feed", "summary": err.Error()}}
+					continue
+				}
+				out[c] = items
+			}
+			_ = json.NewEncoder(w).Encode(out)
+			return
+		}
+		// Single category: use RSS endpoint for that category
+		url := fmt.Sprintf("https://tldr.tech/api/rss/%s", cat)
+		items, err := fetchAndParseRSS(url)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error":"failed to fetch tldr rss: %v"}`, err), http.StatusBadGateway)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(items)
+		return
 	default:
 		http.Error(w, `{"error":"unsupported source"}`, http.StatusBadRequest)
 		return
@@ -527,6 +559,109 @@ func handleNewsFetch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(items)
+}
+
+// fetchTLDRLatest proxies tldr.tech's /api/latest/{category} JSON endpoint and normalizes results
+func fetchTLDRLatest(category string) ([]map[string]interface{}, error) {
+	// sanitize category into a simple path segment
+	seg := strings.TrimSpace(category)
+	seg = strings.ReplaceAll(seg, " ", "-")
+	apiURL := fmt.Sprintf("https://tldr.tech/api/latest/%s", seg)
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Get(apiURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("tldr returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+
+	// Read body and attempt flexible JSON decoding.
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to decode into a slice first
+	var slice []map[string]interface{}
+	if err := json.Unmarshal(b, &slice); err == nil {
+		out := make([]map[string]interface{}, 0, len(slice))
+		for _, it := range slice {
+			m := map[string]interface{}{}
+			if v, ok := it["id"]; ok {
+				m["id"] = v
+			}
+			if v, ok := it["title"]; ok {
+				m["title"] = v
+			}
+			if v, ok := it["url"]; ok {
+				m["url"] = v
+			}
+			if v, ok := it["excerpt"]; ok {
+				m["summary"] = v
+			}
+			if v, ok := it["summary"]; ok {
+				m["summary"] = v
+			}
+			if v, ok := it["tags"]; ok {
+				m["tags"] = v
+			}
+			out = append(out, m)
+		}
+		return out, nil
+	}
+
+	// Try to decode into an object that contains a list under common keys
+	var obj map[string]interface{}
+	if err := json.Unmarshal(b, &obj); err == nil {
+		// possible fields: items, articles, data
+		for _, key := range []string{"items", "articles", "data", "posts"} {
+			if raw, ok := obj[key]; ok {
+				if arr, ok := raw.([]interface{}); ok {
+					out := make([]map[string]interface{}, 0, len(arr))
+					for _, ai := range arr {
+						if m0, ok := ai.(map[string]interface{}); ok {
+							m := map[string]interface{}{}
+							if v, ok := m0["id"]; ok {
+								m["id"] = v
+							}
+							if v, ok := m0["title"]; ok {
+								m["title"] = v
+							}
+							if v, ok := m0["url"]; ok {
+								m["url"] = v
+							}
+							if v, ok := m0["excerpt"]; ok {
+								m["summary"] = v
+							}
+							if v, ok := m0["summary"]; ok {
+								m["summary"] = v
+							}
+							if v, ok := m0["tags"]; ok {
+								m["tags"] = v
+							}
+							out = append(out, m)
+						}
+					}
+					if len(out) > 0 {
+						return out, nil
+					}
+				}
+			}
+		}
+	}
+
+	// If nothing matched, return error with some context to help debugging
+	// truncated body for error message
+	bodyStr := string(b)
+	if len(bodyStr) > 400 {
+		bodyStr = bodyStr[:400] + "..."
+	}
+	return nil, fmt.Errorf("unexpected tldr response format (len=%d): %s", len(b), bodyStr)
 }
 
 func saveLeaderboard(path string) error {

@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 const NEWS_SOURCES = {
   HACKERNEWS: 'HackerNews',
   DEVTO: 'Dev.to',
-  ARSTECHNICA: 'Ars Technica'
+  ARSTECHNICA: 'Ars Technica',
+  TLDR: 'TLDR'
 };
 
 // Cache keys for each news source
@@ -11,6 +12,7 @@ const CACHE_KEYS = {
   [NEWS_SOURCES.HACKERNEWS]: 'avidlearner_news_hackernews',
   [NEWS_SOURCES.DEVTO]: 'avidlearner_news_devto',
   [NEWS_SOURCES.ARSTECHNICA]: 'avidlearner_news_arstechnica',
+  [NEWS_SOURCES.TLDR]: 'avidlearner_news_tldr'
 
 };
 
@@ -45,6 +47,7 @@ export default function TechNews() {
   const [error, setError] = useState(null);
   const [activeSource, setActiveSource] = useState(NEWS_SOURCES.HACKERNEWS);
   const [isOffline, setIsOffline] = useState(false);
+  const [tldrGroups, setTldrGroups] = useState(null);
 
   useEffect(() => {
     fetchNews();
@@ -76,17 +79,28 @@ export default function TechNews() {
       switch (activeSource) {
         case NEWS_SOURCES.HACKERNEWS:
           articles = await fetchHackerNews();
+          setTldrGroups(null);
           break;
         case NEWS_SOURCES.DEVTO:
           articles = await fetchDevTo();
+          setTldrGroups(null);
           break;
+        case NEWS_SOURCES.TLDR:
+          // aggregated TLDR RSS feeds
+          const groups = await fetchTLDR();
+          setTldrGroups(groups);
+          saveToCache(cacheKey, groups);
+          setNews([]);
+          return;
         case NEWS_SOURCES.ARSTECHNICA:
           articles = await fetchArsTechnica();
+          setTldrGroups(null);
           break;
         default:
           articles = await fetchHackerNews();
+          setTldrGroups(null);
       }
-      
+
       // Save to cache
       saveToCache(cacheKey, articles);
       setNews(articles);
@@ -122,6 +136,17 @@ export default function TechNews() {
       comments: it.comments || 0,
       tags: it.tags || []
     }));
+  };
+
+  const fetchTLDR = async () => {
+    // request aggregated TLDR feeds (tech, ai, devops, design)
+    const res = await fetch('/api/news?source=tldr&category=all');
+    if (!res.ok) {
+      throw new Error('Failed to fetch TLDR feeds');
+    }
+    const groups = await res.json();
+    // groups: { tech: [...], ai: [...], devops: [...], design: [...] }
+    return groups;
   };
 
   const fetchHackerNews = async () => {
@@ -202,7 +227,6 @@ export default function TechNews() {
           <p>Loading tech news...</p>
         </div>
       )}
-
       {error && news.length === 0 && (
         <div className="news-error">
           <p>{error}</p>
@@ -210,6 +234,41 @@ export default function TechNews() {
         </div>
       )}
 
+      {/* TLDR grouped view */}
+      {!loading && activeSource === NEWS_SOURCES.TLDR && tldrGroups && (
+        <div>
+          {Object.keys(tldrGroups).map(cat => (
+            <div key={cat} style={{marginBottom:20}}>
+              <h3 style={{marginTop:12, marginBottom:8}}>{cat.toUpperCase()}</h3>
+              <div className="news-grid">
+                {(tldrGroups[cat] || []).slice(0,10).map(article => (
+                  <div key={article.id || article.title} className="news-card">
+                    <a href={article.url || '#'} target="_blank" rel="noopener noreferrer" className="news-title">{article.title}</a>
+                    <div className="news-meta">
+                      <span className="news-points">▲ {article.points || 0}</span>
+                      <span className="news-author">by {article.author || ''}</span>
+                      <span className="news-time">{formatTimeAgo(article.time || 0)}</span>
+                      <span className="news-comments">💬 {article.comments || 0}</span>
+                    </div>
+                    {article.summary && (
+                      <div style={{marginTop:8,color:'#2b2b2b'}}>{article.summary}</div>
+                    )}
+                    {article.tags && (
+                      <div className="news-tags">
+                        {article.tags.slice(0,3).map(tag => (
+                          <span key={tag} className="news-tag">#{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Default flat news view */}
       {!loading && news.length > 0 && (
         <>
           {error && (
@@ -235,6 +294,10 @@ export default function TechNews() {
                   <span className="news-time">{formatTimeAgo(article.time)}</span>
                   <span className="news-comments">💬 {article.comments}</span>
                 </div>
+                {article.summary && (
+                  <div style={{marginTop:8,color:'#2b2b2b'}}>{article.summary}</div>
+                )}
+
                 {article.tags && (
                   <div className="news-tags">
                     {article.tags.slice(0, 3).map(tag => (
