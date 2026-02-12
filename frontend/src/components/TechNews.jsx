@@ -48,17 +48,18 @@ export default function TechNews() {
   const [activeSource, setActiveSource] = useState(NEWS_SOURCES.HACKERNEWS);
   const [isOffline, setIsOffline] = useState(false);
   const [tldrGroups, setTldrGroups] = useState(null);
+  const [tldrCategory, setTldrCategory] = useState('all');
 
   useEffect(() => {
     fetchNews();
-  }, [activeSource]);
+  }, [activeSource, tldrCategory]);
 
   const fetchNews = async () => {
     setLoading(true);
     setError(null);
     setIsOffline(false);
     
-    const cacheKey = CACHE_KEYS[activeSource];
+    const cacheKey = activeSource === NEWS_SOURCES.TLDR ? `${CACHE_KEYS[activeSource]}_${tldrCategory}` : CACHE_KEYS[activeSource];
     
     // Check if offline
     if (!isOnline()) {
@@ -86,10 +87,18 @@ export default function TechNews() {
           setTldrGroups(null);
           break;
         case NEWS_SOURCES.TLDR:
-          // aggregated TLDR RSS feeds
-          const groups = await fetchTLDR();
-          setTldrGroups(groups);
-          saveToCache(cacheKey, groups);
+          // TLDR: fetch selected category (or aggregated 'all')
+          const groups = await fetchTLDR(tldrCategory);
+          // if single category, normalize to grouped object for rendering
+          if (tldrCategory && tldrCategory !== 'all' && Array.isArray(groups)) {
+            const map = {};
+            map[tldrCategory] = groups;
+            setTldrGroups(map);
+            saveToCache(cacheKey, map);
+          } else {
+            setTldrGroups(groups);
+            saveToCache(cacheKey, groups);
+          }
           setNews([]);
           return;
         case NEWS_SOURCES.ARSTECHNICA:
@@ -138,15 +147,15 @@ export default function TechNews() {
     }));
   };
 
-  const fetchTLDR = async () => {
-    // request aggregated TLDR feeds (tech, ai, devops, design)
-    const res = await fetch('/api/news?source=tldr&category=all');
+  const TLDR_CATEGORIES = ['all', 'tech', 'ai', 'devops', 'dev'];
+
+  const fetchTLDR = async (category = 'all') => {
+    const res = await fetch(`/api/news?source=tldr&category=${encodeURIComponent(category)}`);
     if (!res.ok) {
       throw new Error('Failed to fetch TLDR feeds');
     }
-    const groups = await res.json();
-    // groups: { tech: [...], ai: [...], devops: [...], design: [...] }
-    return groups;
+    const data = await res.json();
+    return data;
   };
 
   const fetchHackerNews = async () => {
@@ -213,6 +222,17 @@ export default function TechNews() {
             </button>
           ))}
         </div>
+        {activeSource === NEWS_SOURCES.TLDR && (
+          <div style={{marginTop:8}}>
+            <label className="badge">
+              <select className="badge-select" value={tldrCategory} onChange={(e) => setTldrCategory(e.target.value)}>
+                {['all','tech','ai','devops','dev'].map(c => (
+                  <option key={c} value={c}>{c.toUpperCase()}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
       </div>
 
       {isOffline && !loading && !error && (

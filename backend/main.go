@@ -161,6 +161,7 @@ var (
 	newsCache   = map[string]newsCacheEntry{}
 	newsCacheMu sync.RWMutex
 	newsTTL     = 10 * time.Minute
+	tldrNewsTTL = 30 * time.Minute
 )
 
 // ---------- Main ----------
@@ -435,9 +436,14 @@ type rssDoc struct {
 }
 
 func fetchAndParseRSS(url string) ([]map[string]interface{}, error) {
+	return fetchAndParseRSSWithTTL(url, newsTTL)
+}
+
+// fetchAndParseRSSWithTTL fetches an RSS feed and caches it with the provided TTL.
+func fetchAndParseRSSWithTTL(url string, ttl time.Duration) ([]map[string]interface{}, error) {
 	// Check cache
 	newsCacheMu.RLock()
-	if e, ok := newsCache[url]; ok && time.Since(e.ts) < newsTTL {
+	if e, ok := newsCache[url]; ok && time.Since(e.ts) < ttl {
 		var out []map[string]interface{}
 		if err := json.Unmarshal(e.data, &out); err == nil {
 			newsCacheMu.RUnlock()
@@ -523,11 +529,11 @@ func handleNewsFetch(w http.ResponseWriter, r *http.Request) {
 			cat = "all"
 		}
 		if strings.EqualFold(cat, "all") {
-			cats := []string{"tech", "ai", "devops", "design"}
+			cats := []string{"tech", "ai", "devops", "dev"}
 			out := map[string][]map[string]interface{}{}
 			for _, c := range cats {
 				url := fmt.Sprintf("https://tldr.tech/api/rss/%s", c)
-				items, err := fetchAndParseRSS(url)
+				items, err := fetchAndParseRSSWithTTL(url, tldrNewsTTL)
 				if err != nil {
 					// continue on individual feed errors
 					out[c] = []map[string]interface{}{{"title": "Failed to fetch feed", "summary": err.Error()}}
@@ -540,7 +546,7 @@ func handleNewsFetch(w http.ResponseWriter, r *http.Request) {
 		}
 		// Single category: use RSS endpoint for that category
 		url := fmt.Sprintf("https://tldr.tech/api/rss/%s", cat)
-		items, err := fetchAndParseRSS(url)
+		items, err := fetchAndParseRSSWithTTL(url, tldrNewsTTL)
 		if err != nil {
 			http.Error(w, fmt.Sprintf(`{"error":"failed to fetch tldr rss: %v"}`, err), http.StatusBadGateway)
 			return
