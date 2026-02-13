@@ -17,8 +17,6 @@ type LessonsResponse struct {
 	Lessons    map[string][]Lesson `json:"lessons"`
 }
 
-const lessonRepeatWindow = 100
-
 type SessionState struct {
 	Stage string `json:"stage"`
 	// lesson/reading
@@ -66,21 +64,21 @@ type ProChallenge struct {
 	Reward      ChallengeReward  `json:"reward"`
 }
 
-type testFailure struct {
+type TestFailure struct {
 	Name   string `json:"name"`
 	Output string `json:"output"`
 }
 
-type challengeTestResult struct {
+type ChallengeTestResult struct {
 	Passed   bool
 	Total    int
-	Failures []testFailure
+	Failures []TestFailure
 	Stdout   string
 	Stderr   string
 }
 
 // Per-session state
-type profile struct {
+type Profile struct {
 	Coins       int
 	Streak      int
 	XP          int

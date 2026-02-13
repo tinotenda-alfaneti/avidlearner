@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	. "avidlearner/internal/models"
 )
 
 func TestWithSession(t *testing.T) {
@@ -69,7 +71,7 @@ func TestWithSession(t *testing.T) {
 
 func TestGetProfile(t *testing.T) {
 	// Clear sessions
-	sessions = map[string]*profile{}
+	sessions = map[string]*Profile{}
 
 	t.Run("returns new profile when no cookie", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)

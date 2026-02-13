@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	. "avidlearner/internal/models"
 )
 
 func writeTempLessons(t *testing.T, lessons []Lesson) string {

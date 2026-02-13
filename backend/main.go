@@ -23,119 +23,15 @@ import (
 
 	"avidlearner/ai"
 	"avidlearner/config"
+	. "avidlearner/internal/models"
 	"avidlearner/lessons"
 )
 
-// ---------- Models ----------
-
-type Lesson struct {
-	Title    string   `json:"title"`
-	Category string   `json:"category"`
-	Text     string   `json:"text"`
-	Explain  string   `json:"explain"`
-	UseCases []string `json:"useCases"`
-	Tips     []string `json:"tips"`
-	Source   string   `json:"source,omitempty"` // "local", "github", "devto"
-}
-
-type LessonsResponse struct {
-	Categories []string            `json:"categories"`
-	Lessons    map[string][]Lesson `json:"lessons"`
-}
 
 const lessonRepeatWindow = 100
 
-type SessionState struct {
-	Stage string `json:"stage"`
-	// lesson/reading
-	Lesson *Lesson `json:"lesson,omitempty"`
-	// quiz
-	Question string   `json:"question,omitempty"`
-	Options  []string `json:"options,omitempty"`
-	Index    int      `json:"index,omitempty"`
-	Total    int      `json:"total,omitempty"`
-	// result/answer
-	Correct     bool   `json:"correct,omitempty"`
-	CoinsEarned int    `json:"coinsEarned,omitempty"`
-	CoinsTotal  int    `json:"coinsTotal,omitempty"`
-	XPTotal     int    `json:"xpTotal,omitempty"`
-	More        bool   `json:"more,omitempty"`
-	Message     string `json:"message,omitempty"`
-}
-
-// One generated MCQ
-type QuizQuestion struct {
-	LessonTitle  string
-	Question     string
-	Options      []string
-	CorrectIndex int
-}
-
-type ChallengeStarter struct {
-	Filename string `json:"filename"`
-	Code     string `json:"code"`
-}
-
-type ChallengeReward struct {
-	XP    int `json:"xp"`
-	Coins int `json:"coins"`
-}
-
-type ProChallenge struct {
-	ID          string           `json:"id"`
-	Title       string           `json:"title"`
-	Difficulty  string           `json:"difficulty"`
-	Topics      []string         `json:"topics"`
-	Description string           `json:"description"`
-	Starter     ChallengeStarter `json:"starter"`
-	Hints       []string         `json:"hints"`
-	Reward      ChallengeReward  `json:"reward"`
-}
-
-type testFailure struct {
-	Name   string `json:"name"`
-	Output string `json:"output"`
-}
-
-type challengeTestResult struct {
-	Passed   bool
-	Total    int
-	Failures []testFailure
-	Stdout   string
-	Stderr   string
-}
-
-// Per-session state
-type profile struct {
-	Coins       int
-	Streak      int
-	XP          int
-	LessonsSeen []string
-
-	CurrentQuiz   []QuizQuestion
-	QuizIndex     int
-	LastLesson    *Lesson
-	RecentLessons []string
-	HintIdx       map[string]int // challengeID -> next hint index
-	PlayerName    string         // for leaderboard
-
-	QuizScore       int       // Current quiz session score
-	TypingScore     int       // Best typing score this session
-	CodingScore     int       // Coding challenges score
-	LastScoreSubmit time.Time // Prevent spam submissions
-}
-
-// Leaderboard entry
-type LeaderboardEntry struct {
-	Name     string    `json:"name"`
-	Score    int       `json:"score"`
-	Mode     string    `json:"mode"` // "quiz", "typing", "coding"
-	Date     time.Time `json:"date"`
-	Category string    `json:"category,omitempty"`
-}
-
-func newProfile() *profile {
-	return &profile{
+func newProfile() *Profile {
+	return &Profile{
 		HintIdx: map[string]int{},
 	}
 }
@@ -144,7 +40,7 @@ func newProfile() *profile {
 var (
 	lessonsByCat      map[string][]Lesson
 	categories        []string
-	sessions          = map[string]*profile{} // sid -> profile
+	sessions          = map[string]*Profile{} // sid -> profile
 	proChallenges     []ProChallenge
 	proChallengesByID map[string]ProChallenge
 	leaderboard       []LeaderboardEntry // in-memory leaderboard
@@ -733,7 +629,7 @@ func uniqueStrings(ss []string) []string {
 	return out
 }
 
-func pickLessonForProfile(p *profile, cat string, source string) *Lesson {
+func pickLessonForProfile(p *Profile, cat string, source string) *Lesson {
 	if p == nil {
 		return pickRandomLesson(cat)
 	}
@@ -832,7 +728,7 @@ func withSession(next http.Handler) http.Handler {
 	})
 }
 
-func getProfile(r *http.Request) *profile {
+func getProfile(r *http.Request) *Profile {
 	c, err := r.Cookie("sid")
 	if err != nil {
 		return newProfile()
@@ -1245,13 +1141,13 @@ func buildQuizForLesson(l Lesson) QuizQuestion {
 	}
 }
 
-func runChallengeTests(parent context.Context, ch ProChallenge, source string) (challengeTestResult, error) {
-	var result challengeTestResult
+func runChallengeTests(parent context.Context, ch ProChallenge, source string) (ChallengeTestResult, error) {
+	var result ChallengeTestResult
 	if strings.Contains(ch.ID, "..") {
 		return result, fmt.Errorf("invalid challenge id")
 	}
 	if strings.TrimSpace(source) == "" {
-		result.Failures = []testFailure{{Name: "submission", Output: "no code submitted"}}
+		result.Failures = []TestFailure{{Name: "submission", Output: "no code submitted"}}
 		return result, nil
 	}
 
@@ -1295,13 +1191,13 @@ func runChallengeTests(parent context.Context, ch ProChallenge, source string) (
 		result.Failures = extractFailures(result.Stdout + "\n" + result.Stderr)
 		if len(result.Failures) == 0 {
 			if errors.Is(runErr, context.DeadlineExceeded) || errors.Is(runCtx.Err(), context.DeadlineExceeded) {
-				result.Failures = []testFailure{{Name: "timeout", Output: "tests exceeded execution time limit"}}
+				result.Failures = []TestFailure{{Name: "timeout", Output: "tests exceeded execution time limit"}}
 			} else if result.Stderr != "" {
-				result.Failures = []testFailure{{Name: "tests", Output: result.Stderr}}
+				result.Failures = []TestFailure{{Name: "tests", Output: result.Stderr}}
 			} else if result.Stdout != "" {
-				result.Failures = []testFailure{{Name: "tests", Output: result.Stdout}}
+				result.Failures = []TestFailure{{Name: "tests", Output: result.Stdout}}
 			} else {
-				result.Failures = []testFailure{{Name: "tests", Output: runErr.Error()}}
+				result.Failures = []TestFailure{{Name: "tests", Output: runErr.Error()}}
 			}
 		}
 		return result, nil
@@ -1352,15 +1248,15 @@ func countTests(out string) int {
 	return count
 }
 
-func extractFailures(out string) []testFailure {
+func extractFailures(out string) []TestFailure {
 	lines := strings.Split(out, "\n")
 	var (
-		current *testFailure
-		result  []testFailure
+		current *TestFailure
+		result  []TestFailure
 	)
 	flush := func() {
 		if current != nil {
-			result = append(result, testFailure{
+			result = append(result, TestFailure{
 				Name:   current.Name,
 				Output: strings.TrimSpace(current.Output),
 			})
@@ -1380,7 +1276,7 @@ func extractFailures(out string) []testFailure {
 			if len(fields) >= 3 {
 				name = fields[2]
 			}
-			current = &testFailure{Name: name, Output: line}
+			current = &TestFailure{Name: name, Output: line}
 			continue
 		}
 		if strings.HasPrefix(line, "--- PASS:") || strings.HasPrefix(line, "--- SKIP:") || strings.HasPrefix(line, "PASS") || strings.HasPrefix(line, "FAIL") || strings.HasPrefix(line, "ok ") {

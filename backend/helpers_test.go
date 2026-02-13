@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	. "avidlearner/internal/models"
 )
 
 func TestLoadLessons(t *testing.T) {
