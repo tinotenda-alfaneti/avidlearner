@@ -48,13 +48,10 @@ var (
 )
 
 // Simple in-memory cache for news feeds
-type newsCacheEntry struct {
-	ts   time.Time
-	data []byte
-}
+
 
 var (
-	newsCache   = map[string]newsCacheEntry{}
+	newsCache   = map[string]NewsCacheEntry{}
 	newsCacheMu sync.RWMutex
 	newsTTL     = 10 * time.Minute
 	tldrNewsTTL = 30 * time.Minute
@@ -339,9 +336,9 @@ func fetchAndParseRSS(url string) ([]map[string]interface{}, error) {
 func fetchAndParseRSSWithTTL(url string, ttl time.Duration) ([]map[string]interface{}, error) {
 	// Check cache
 	newsCacheMu.RLock()
-	if e, ok := newsCache[url]; ok && time.Since(e.ts) < ttl {
+	if e, ok := newsCache[url]; ok && time.Since(e.Ts) < ttl {
 		var out []map[string]interface{}
-		if err := json.Unmarshal(e.data, &out); err == nil {
+		if err := json.Unmarshal(e.Data, &out); err == nil {
 			newsCacheMu.RUnlock()
 			return out, nil
 		}
@@ -394,7 +391,7 @@ func fetchAndParseRSSWithTTL(url string, ttl time.Duration) ([]map[string]interf
 	// Cache result
 	if b, err := json.Marshal(out); err == nil {
 		newsCacheMu.Lock()
-		newsCache[url] = newsCacheEntry{ts: time.Now(), data: b}
+		newsCache[url] = NewsCacheEntry{Ts: time.Now(), Data: b}
 		newsCacheMu.Unlock()
 	}
 

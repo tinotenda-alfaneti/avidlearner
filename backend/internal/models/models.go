@@ -105,3 +105,8 @@ type LeaderboardEntry struct {
 	Date     time.Time `json:"date"`
 	Category string    `json:"category,omitempty"`
 }
+
+type NewsCacheEntry struct {
+	Ts   time.Time
+	Data []byte
+}
