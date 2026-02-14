@@ -110,3 +110,20 @@ type NewsCacheEntry struct {
 	Ts   time.Time
 	Data []byte
 }
+
+type RssItem struct {
+	Title   string   `xml:"title"`
+	Link    string   `xml:"link"`
+	GUID    string   `xml:"guid"`
+	PubDate string   `xml:"pubDate"`
+	Author  string   `xml:"creator"`
+	Cats    []string `xml:"category"`
+}
+
+type RssChannel struct {
+	Items []RssItem `xml:"item"`
+}
+
+type RssDoc struct {
+	Channel RssChannel `xml:"channel"`
+}

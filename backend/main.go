@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	mrand "math/rand"
 	"net/http"
 	"os"
@@ -45,12 +46,7 @@ var (
 	proChallengesByID map[string]ProChallenge
 	leaderboard       []LeaderboardEntry // in-memory leaderboard
 	lessonFetcher     *lessons.Fetcher
-)
 
-// Simple in-memory cache for news feeds
-
-
-var (
 	newsCache   = map[string]NewsCacheEntry{}
 	newsCacheMu sync.RWMutex
 	newsTTL     = 10 * time.Minute
@@ -60,7 +56,7 @@ var (
 // ---------- Main ----------
 
 func main() {
-	mrand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 
 	// Load lessons
 	dataPath := os.Getenv("LESSONS_FILE")
@@ -311,23 +307,6 @@ func loadLeaderboard(path string) error {
 
 // ---------- News RSS Fetcher ----------
 
-type rssItem struct {
-	Title   string   `xml:"title"`
-	Link    string   `xml:"link"`
-	GUID    string   `xml:"guid"`
-	PubDate string   `xml:"pubDate"`
-	Author  string   `xml:"creator"`
-	Cats    []string `xml:"category"`
-}
-
-type rssChannel struct {
-	Items []rssItem `xml:"item"`
-}
-
-type rssDoc struct {
-	Channel rssChannel `xml:"channel"`
-}
-
 func fetchAndParseRSS(url string) ([]map[string]interface{}, error) {
 	return fetchAndParseRSSWithTTL(url, newsTTL)
 }
@@ -352,7 +331,7 @@ func fetchAndParseRSSWithTTL(url string, ttl time.Duration) ([]map[string]interf
 	}
 	defer resp.Body.Close()
 
-	var doc rssDoc
+	var doc RssDoc
 	dec := xml.NewDecoder(resp.Body)
 	if err := dec.Decode(&doc); err != nil {
 		return nil, err
