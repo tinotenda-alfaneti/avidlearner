@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"sync"
 	"time"
 
@@ -16,8 +14,13 @@ import (
 	"avidlearner/lessons"
 )
 
-
-const lessonRepeatWindow = 100
+const (
+	lessonRepeatWindow      = 100
+	lessonFetchTTL          = 6 * time.Hour
+	lessonMapRefreshDelay   = 15 * time.Second
+	lessonMapRefreshEvery   = 10 * time.Minute
+	leaderboardSaveInterval = 5 * time.Minute
+)
 
 func newProfile() *Profile {
 	return &Profile{
@@ -41,115 +44,100 @@ var (
 	tldrNewsTTL = 30 * time.Minute
 )
 
+func envOrDefault(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
+
+func loadSecretLessons(path string) []Lesson {
+	if _, err := os.Stat(path); err != nil {
+		return nil
+	}
+
+	secretLessons, err := loadLessons(path)
+	if err != nil {
+		log.Printf("Warning: failed to load secret knowledge lessons: %v", err)
+		return nil
+	}
+
+	log.Printf("Loaded %d lessons from Book of Secret Knowledge", len(secretLessons))
+	return secretLessons
+}
+
+func buildFetcherLessons(coreLessons []Lesson, secretLessons []Lesson) []lessons.Lesson {
+	localLessons := make([]lessons.Lesson, 0, len(coreLessons)+len(secretLessons))
+	localLessons = appendFetcherLessons(localLessons, coreLessons, "local")
+	return appendFetcherLessons(localLessons, secretLessons, "secret-knowledge")
+}
+
+func appendFetcherLessons(dst []lessons.Lesson, src []Lesson, source string) []lessons.Lesson {
+	for _, lesson := range src {
+		dst = append(dst, lessons.Lesson{
+			Title:    lesson.Title,
+			Category: lesson.Category,
+			Text:     lesson.Text,
+			Explain:  lesson.Explain,
+			UseCases: lesson.UseCases,
+			Tips:     lesson.Tips,
+			Source:   source,
+		})
+	}
+	return dst
+}
+
 // ---------- Main ----------
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+	ctx := context.Background()
 
 	// Load lessons
-	dataPath := os.Getenv("LESSONS_FILE")
-	if dataPath == "" {
-		dataPath = filepath.Join("..", "data", "lessons.json")
-	}
+	dataPath := envOrDefault("LESSONS_FILE", filepath.Join("..", "data", "lessons.json"))
 	loaded, err := loadLessons(dataPath)
 	if err != nil {
 		log.Fatalf("failed to load lessons from %s: %v", dataPath, err)
 	}
-	coreCount := len(loaded)
 
 	// Load secret knowledge lessons
-	var secretLessons []Lesson
 	secretKnowledgePath := filepath.Join("..", "data", "secret_knowledge_lessons.json")
-	if _, err := os.Stat(secretKnowledgePath); err == nil {
-		secretLessons, err = loadLessons(secretKnowledgePath)
-		if err != nil {
-			log.Printf("Warning: failed to load secret knowledge lessons: %v", err)
-		} else {
-			log.Printf("Loaded %d lessons from Book of Secret Knowledge", len(secretLessons))
-		}
-	}
+	secretLessons := loadSecretLessons(secretKnowledgePath)
 
 	// Convert loaded lessons to lessons.Lesson type
-	localLessons := make([]lessons.Lesson, 0, len(loaded)+len(secretLessons))
-
-	// Add core lessons with "local" source
-	for _, l := range loaded[:coreCount] {
-		localLessons = append(localLessons, lessons.Lesson{
-			Title:    l.Title,
-			Category: l.Category,
-			Text:     l.Text,
-			Explain:  l.Explain,
-			UseCases: l.UseCases,
-			Tips:     l.Tips,
-			Source:   "local",
-		})
-	}
-
-	// Add secret knowledge lessons with "secret-knowledge" source
-	for _, l := range secretLessons {
-		localLessons = append(localLessons, lessons.Lesson{
-			Title:    l.Title,
-			Category: l.Category,
-			Text:     l.Text,
-			Explain:  l.Explain,
-			UseCases: l.UseCases,
-			Tips:     l.Tips,
-			Source:   "secret-knowledge",
-		})
-	}
+	localLessons := buildFetcherLessons(loaded, secretLessons)
 
 	// Initialize hybrid lesson fetcher (cache TTL: 6 hours)
-	lessonFetcher = lessons.NewFetcher(localLessons, 6*time.Hour)
+	lessonFetcher = lessons.NewFetcher(localLessons, lessonFetchTTL)
 
 	// Start background refresh (every 6 hours)
-	lessonFetcher.StartBackgroundRefresh(context.Background(), 6*time.Hour)
+	lessonFetcher.StartBackgroundRefresh(ctx, lessonFetchTTL)
 
 	// Get initial lessons (local + external)
-	allLessons := lessonFetcher.GetLessons(context.Background())
-
-	// Build category map from all lessons
-	lessonsByCat = map[string][]Lesson{}
-	for _, l := range allLessons {
-		mainLesson := Lesson{
-			Title:    l.Title,
-			Category: l.Category,
-			Text:     l.Text,
-			Explain:  l.Explain,
-			UseCases: l.UseCases,
-			Tips:     l.Tips,
-			Source:   l.Source,
-		}
-		lessonsByCat[l.Category] = append(lessonsByCat[l.Category], mainLesson)
-	}
-	for cat := range lessonsByCat {
-		categories = append(categories, cat)
-	}
-	sort.Strings(categories)
+	allLessons := lessonFetcher.GetLessons(ctx)
+	updateLessonMap(allLessons)
 
 	log.Printf("Loaded %d lessons total (%d local + external)", len(allLessons), len(loaded))
 
 	// Periodically refresh lesson map from fetcher (every 10 minutes)
 	go func() {
 		// Wait a bit for first external fetch, then refresh immediately
-		time.Sleep(15 * time.Second)
-		allLessons := lessonFetcher.GetLessons(context.Background())
+		time.Sleep(lessonMapRefreshDelay)
+		allLessons := lessonFetcher.GetLessons(ctx)
 		updateLessonMap(allLessons)
 
-		ticker := time.NewTicker(10 * time.Minute)
+		ticker := time.NewTicker(lessonMapRefreshEvery)
 		defer ticker.Stop()
 		for range ticker.C {
-			allLessons := lessonFetcher.GetLessons(context.Background())
+			allLessons := lessonFetcher.GetLessons(ctx)
 			updateLessonMap(allLessons)
 		}
 	}()
 
 	// Load pro challenges
-	proPath := os.Getenv("PRO_CHALLENGES_FILE")
-	if proPath == "" {
-		proPath = filepath.Join("..", "data", "pro_challenges.json")
-		if _, err := os.Stat(proPath); os.IsNotExist(err) {
-			proPath = filepath.Join("data", "pro_challenges.json")
-		}
+	proPath := envOrDefault("PRO_CHALLENGES_FILE", filepath.Join("..", "data", "pro_challenges.json"))
+	if _, err := os.Stat(proPath); os.IsNotExist(err) {
+		proPath = filepath.Join("data", "pro_challenges.json")
 	}
 	var pcErr error
 	proChallenges, proChallengesByID, pcErr = loadProChallenges(proPath)
@@ -158,12 +146,9 @@ func main() {
 	}
 
 	// Load leaderboard from disk
-	leaderboardPath := os.Getenv("LEADERBOARD_FILE")
-	if leaderboardPath == "" {
-		leaderboardPath = filepath.Join("..", "data", "leaderboard.json")
-		if _, err := os.Stat(filepath.Dir(leaderboardPath)); os.IsNotExist(err) {
-			leaderboardPath = filepath.Join("data", "leaderboard.json")
-		}
+	leaderboardPath := envOrDefault("LEADERBOARD_FILE", filepath.Join("..", "data", "leaderboard.json"))
+	if _, err := os.Stat(filepath.Dir(leaderboardPath)); os.IsNotExist(err) {
+		leaderboardPath = filepath.Join("data", "leaderboard.json")
 	}
 	if err := loadLeaderboard(leaderboardPath); err != nil {
 		log.Printf("Warning: failed to load leaderboard from %s: %v (starting fresh)", leaderboardPath, err)
@@ -172,7 +157,7 @@ func main() {
 
 	// Save leaderboard periodically
 	go func() {
-		ticker := time.NewTicker(5 * time.Minute)
+		ticker := time.NewTicker(leaderboardSaveInterval)
 		defer ticker.Stop()
 		for range ticker.C {
 			if err := saveLeaderboard(leaderboardPath); err != nil {
