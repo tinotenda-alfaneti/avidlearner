@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"avidlearner/internal/routes"
 	. "avidlearner/internal/models"
 )
 
@@ -35,22 +36,24 @@ func TestHandleLessons(t *testing.T) {
 	path := writeTempLessons(t, sample)
 	defer os.Remove(path)
 
-	loaded, err := loadLessons(path)
+	loaded, err := routes.LoadLessons(path)
 	if err != nil {
 		t.Fatalf("loadLessons error: %v", err)
 	}
-	lessonsByCat = map[string][]Lesson{}
-	categories = nil
+	lessonsByCat := map[string][]Lesson{}
+	var categories []string
 	for _, l := range loaded {
 		lessonsByCat[l.Category] = append(lessonsByCat[l.Category], l)
 	}
 	for cat := range lessonsByCat {
 		categories = append(categories, cat)
 	}
+	routes.SetLessonsByCategory(lessonsByCat)
+	routes.SetCategories(categories)
 
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/api/lessons", nil)
-	handler := http.HandlerFunc(handleLessons)
+	handler := http.HandlerFunc(routes.HandleLessons)
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -70,23 +73,25 @@ func TestHandleRandom(t *testing.T) {
 	path := writeTempLessons(t, sample)
 	defer os.Remove(path)
 
-	loaded, err := loadLessons(path)
+	loaded, err := routes.LoadLessons(path)
 	if err != nil {
 		t.Fatalf("loadLessons error: %v", err)
 	}
-	lessonsByCat = map[string][]Lesson{}
-	categories = nil
+	lessonsByCat := map[string][]Lesson{}
+	var categories []string
 	for _, l := range loaded {
 		lessonsByCat[l.Category] = append(lessonsByCat[l.Category], l)
 	}
 	for cat := range lessonsByCat {
 		categories = append(categories, cat)
 	}
+	routes.SetLessonsByCategory(lessonsByCat)
+	routes.SetCategories(categories)
 
 	// Request any
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/api/random?category=any", nil)
-	handler := http.HandlerFunc(handleRandom)
+	handler := http.HandlerFunc(routes.HandleRandom)
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200 got %d", rr.Code)

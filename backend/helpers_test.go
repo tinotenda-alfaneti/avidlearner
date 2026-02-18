@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"avidlearner/internal/routes"
 	. "avidlearner/internal/models"
 )
 
@@ -26,7 +27,7 @@ func TestLoadLessons(t *testing.T) {
 		}
 		tmpFile.Close()
 
-		lessons, err := loadLessons(tmpFile.Name())
+		lessons, err := routes.LoadLessons(tmpFile.Name())
 		if err != nil {
 			t.Fatalf("loadLessons failed: %v", err)
 		}
@@ -45,7 +46,7 @@ func TestLoadLessons(t *testing.T) {
 	})
 
 	t.Run("returns error for non-existent file", func(t *testing.T) {
-		_, err := loadLessons(filepath.Join("non", "existent", "file.json"))
+		_, err := routes.LoadLessons(filepath.Join("non", "existent", "file.json"))
 		if err == nil {
 			t.Error("expected error for non-existent file, got nil")
 		}
@@ -61,7 +62,7 @@ func TestLoadLessons(t *testing.T) {
 		tmpFile.WriteString("{invalid json")
 		tmpFile.Close()
 
-		_, err = loadLessons(tmpFile.Name())
+		_, err = routes.LoadLessons(tmpFile.Name())
 		if err == nil {
 			t.Error("expected error for invalid JSON, got nil")
 		}
@@ -84,7 +85,7 @@ func TestLoadProChallenges(t *testing.T) {
 		tmpFile.WriteString(content)
 		tmpFile.Close()
 
-		challenges, byID, err := loadProChallenges(tmpFile.Name())
+		challenges, byID, err := routes.LoadProChallenges(tmpFile.Name())
 		if err != nil {
 			t.Fatalf("loadProChallenges failed: %v", err)
 		}
@@ -126,7 +127,7 @@ func TestLoadProChallenges(t *testing.T) {
 		tmpFile.WriteString(content)
 		tmpFile.Close()
 
-		challenges, byID, err := loadProChallenges(tmpFile.Name())
+		challenges, byID, err := routes.LoadProChallenges(tmpFile.Name())
 		if err != nil {
 			t.Fatalf("loadProChallenges failed: %v", err)
 		}
@@ -143,13 +144,14 @@ func TestLoadProChallenges(t *testing.T) {
 
 func TestPickRandomLesson(t *testing.T) {
 	// Setup test data
-	lessonsByCat = map[string][]Lesson{
+	lessonsByCat := map[string][]Lesson{
 		"Go":     {{Title: "Go Lesson 1", Category: "Go", Text: "text"}},
 		"Python": {{Title: "Python Lesson 1", Category: "Python", Text: "text"}, {Title: "Python Lesson 2", Category: "Python", Text: "text"}},
 	}
+	routes.SetLessonsByCategory(lessonsByCat)
 
 	t.Run("picks lesson from specific category", func(t *testing.T) {
-		lesson := pickRandomLesson("Go")
+		lesson := routes.PickRandomLesson("Go")
 		if lesson == nil {
 			t.Fatal("expected lesson, got nil")
 		}
@@ -160,7 +162,7 @@ func TestPickRandomLesson(t *testing.T) {
 	})
 
 	t.Run("picks lesson from any category", func(t *testing.T) {
-		lesson := pickRandomLesson("any")
+		lesson := routes.PickRandomLesson("any")
 		if lesson == nil {
 			t.Fatal("expected lesson, got nil")
 		}
@@ -171,32 +173,33 @@ func TestPickRandomLesson(t *testing.T) {
 	})
 
 	t.Run("returns nil for non-existent category", func(t *testing.T) {
-		lesson := pickRandomLesson("NonExistent")
+		lesson := routes.PickRandomLesson("NonExistent")
 		if lesson != nil {
 			t.Error("expected nil for non-existent category, got lesson")
 		}
 	})
 
 	t.Run("returns nil for empty lessons", func(t *testing.T) {
-		originalLessons := lessonsByCat
-		lessonsByCat = map[string][]Lesson{}
+		originalLessons := routes.LessonsByCategory()
+		routes.SetLessonsByCategory(map[string][]Lesson{})
 
-		lesson := pickRandomLesson("any")
+		lesson := routes.PickRandomLesson("any")
 		if lesson != nil {
 			t.Error("expected nil for empty lessons, got lesson")
 		}
 
-		lessonsByCat = originalLessons
+		routes.SetLessonsByCategory(originalLessons)
 	})
 }
 
 func TestAllLessons(t *testing.T) {
-	lessonsByCat = map[string][]Lesson{
+	lessonsByCat := map[string][]Lesson{
 		"Go":     {{Title: "Go 1", Category: "Go", Text: "text"}},
 		"Python": {{Title: "Python 1", Category: "Python", Text: "text"}, {Title: "Python 2", Category: "Python", Text: "text"}},
 	}
+	routes.SetLessonsByCategory(lessonsByCat)
 
-	lessons := allLessons()
+	lessons := routes.AllLessons()
 
 	if len(lessons) != 3 {
 		t.Errorf("expected 3 lessons, got %d", len(lessons))
@@ -204,13 +207,14 @@ func TestAllLessons(t *testing.T) {
 }
 
 func TestFindLessonByTitle(t *testing.T) {
-	lessonsByCat = map[string][]Lesson{
+	lessonsByCat := map[string][]Lesson{
 		"Go":     {{Title: "Go Basics", Category: "Go", Text: "text"}},
 		"Python": {{Title: "Python Basics", Category: "Python", Text: "text"}},
 	}
+	routes.SetLessonsByCategory(lessonsByCat)
 
 	t.Run("finds existing lesson", func(t *testing.T) {
-		lesson := findLessonByTitle("Go Basics")
+		lesson := routes.FindLessonByTitle("Go Basics")
 		if lesson == nil {
 			t.Fatal("expected lesson, got nil")
 		}
@@ -225,7 +229,7 @@ func TestFindLessonByTitle(t *testing.T) {
 	})
 
 	t.Run("returns nil for non-existent lesson", func(t *testing.T) {
-		lesson := findLessonByTitle("Non Existent")
+		lesson := routes.FindLessonByTitle("Non Existent")
 		if lesson != nil {
 			t.Error("expected nil for non-existent lesson, got lesson")
 		}
@@ -235,7 +239,7 @@ func TestFindLessonByTitle(t *testing.T) {
 func TestUniqueStrings(t *testing.T) {
 	t.Run("removes duplicates", func(t *testing.T) {
 		input := []string{"a", "b", "c", "a", "b", "d"}
-		result := uniqueStrings(input)
+		result := routes.UniqueStrings(input)
 
 		if len(result) != 4 {
 			t.Errorf("expected 4 unique strings, got %d", len(result))
@@ -251,7 +255,7 @@ func TestUniqueStrings(t *testing.T) {
 
 	t.Run("preserves order of first occurrence", func(t *testing.T) {
 		input := []string{"z", "a", "z", "b", "a"}
-		result := uniqueStrings(input)
+		result := routes.UniqueStrings(input)
 
 		if len(result) != 3 {
 			t.Errorf("expected 3 unique strings, got %d", len(result))
@@ -263,7 +267,7 @@ func TestUniqueStrings(t *testing.T) {
 	})
 
 	t.Run("handles empty slice", func(t *testing.T) {
-		result := uniqueStrings([]string{})
+		result := routes.UniqueStrings([]string{})
 		if len(result) != 0 {
 			t.Errorf("expected empty result, got %d items", len(result))
 		}
@@ -271,17 +275,18 @@ func TestUniqueStrings(t *testing.T) {
 }
 
 func TestPickLessonForProfile(t *testing.T) {
-	lessonsByCat = map[string][]Lesson{
+	lessonsByCat := map[string][]Lesson{
 		"Go": {
 			{Title: "Lesson 1", Category: "Go", Text: "text"},
 			{Title: "Lesson 2", Category: "Go", Text: "text"},
 			{Title: "Lesson 3", Category: "Go", Text: "text"},
 		},
 	}
+	routes.SetLessonsByCategory(lessonsByCat)
 
 	t.Run("picks lesson and updates recent history", func(t *testing.T) {
-		p := newProfile()
-		lesson := pickLessonForProfile(p, "Go", "")
+		p := routes.NewProfile()
+		lesson := routes.PickLessonForProfile(p, "Go", "")
 
 		if lesson == nil {
 			t.Fatal("expected lesson, got nil")
@@ -297,12 +302,12 @@ func TestPickLessonForProfile(t *testing.T) {
 	})
 
 	t.Run("avoids recently seen lessons", func(t *testing.T) {
-		p := newProfile()
+		p := routes.NewProfile()
 		p.RecentLessons = []string{"Lesson 1", "Lesson 2"}
 
 		seen := make(map[string]int)
 		for i := 0; i < 10; i++ {
-			lesson := pickLessonForProfile(p, "Go", "")
+			lesson := routes.PickLessonForProfile(p, "Go", "")
 			if lesson != nil {
 				seen[lesson.Title]++
 			}
@@ -315,14 +320,14 @@ func TestPickLessonForProfile(t *testing.T) {
 	})
 
 	t.Run("trims history when it exceeds window", func(t *testing.T) {
-		p := newProfile()
+		p := routes.NewProfile()
 		// Fill with many lessons
-		for i := 0; i < lessonRepeatWindow*3; i++ {
-			pickLessonForProfile(p, "Go", "")
+		for i := 0; i < routes.LessonRepeatWindow*3; i++ {
+			routes.PickLessonForProfile(p, "Go", "")
 		}
 
-		if len(p.RecentLessons) > lessonRepeatWindow*2 {
-			t.Errorf("expected recent lessons to be trimmed to <= %d, got %d", lessonRepeatWindow*2, len(p.RecentLessons))
+		if len(p.RecentLessons) > routes.LessonRepeatWindow*2 {
+			t.Errorf("expected recent lessons to be trimmed to <= %d, got %d", routes.LessonRepeatWindow*2, len(p.RecentLessons))
 		}
 	})
 }
