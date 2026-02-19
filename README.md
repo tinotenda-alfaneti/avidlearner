@@ -6,45 +6,66 @@ Single container app: Go backend + React frontend (Vite) with optional PWA insta
 ## Project Layout
 ```
 .
-├── Dockerfile           # root-level, builds frontend and backend
+├── Dockerfile            # root-level, builds frontend and backend
 ├── CHANGELOG.md
-├── .env.example         # Environment configuration template
+├── Jenkinsfile
+├── Makefile
+├── .env.example          # Environment configuration template
 ├── docs/
-│   └── AI_FEATURE.md    # AI feature documentation
-├── charts/              # Helm chart + k8s manifests
+│   ├── AI_FEATURE.md     # AI feature documentation
+│   ├── LESSON_FETCHER.md # Lesson fetcher behavior
+│   ├── LESSON_SOURCES.md # Lesson sources + filtering
+│   └── TECH_NEWS_FEATURE.md
+├── charts/               # Helm chart + k8s manifests
+│   └── app/
+│       └── templates/
+├── ci/
+│   └── kubernetes/
 ├── data/
-│   ├── lessons.json     # 70+ lessons (expanded dataset)
-│   ├── challenges.json  # sample coding challenges for autograder
-│   └── tutor_progress.json # tiny-tutor progress storage (created at runtime)
-│   ├── secret_knowledge_lessons.json  # Curated content from Book of Secret Knowledge
+│   ├── lessons.json              # 70+ lessons (expanded dataset)
+│   ├── challenges.json           # sample coding challenges for autograder
 │   ├── pro_challenges.json
-│   └── leaderboard.json # Persistent leaderboard storage
+│   ├── secret_knowledge_lessons.json # Curated content from Book of Secret Knowledge
+│   └── leaderboard.json          # Persistent leaderboard storage
 ├── backend/
-│   ├── main.go          # API endpoints (includes leaderboard with validation)
+│   ├── main.go                   # API entrypoint
 │   ├── go.mod
+│   ├── ai/
+│   │   └── provider.go           # AI provider interface & implementations
 │   ├── config/
-│   │   └── features.go  # Feature flag system
-│   └── ai/
-│       └── provider.go  # AI provider interface & implementations
-├── frontend/            # Vite + React app w/ PWA manifest + SW
+│   │   └── features.go           # Feature flag system
+│   ├── internal/
+│   │   ├── models/
+│   │   │   └── models.go
+│   │   └── routes/
+│   │       ├── routes.go
+│   │       └── state.go
+│   ├── lessons/
+│   │   └── fetcher.go             # External lesson fetcher
+│   └── protests/                  # Go practice exercises (see subfolders)
+├── frontend/             # Vite + React app w/ PWA manifest + SW
 │   ├── package.json
 │   ├── public/icon.svg
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── AILessonGenerator.jsx
 │   │   │   ├── Dashboard.jsx
-│   │   │   ├── Leaderboard.jsx       # Global leaderboard view
-│   │   │   ├── NameInputModal.jsx    # Score submission modal
+│   │   │   ├── Leaderboard.jsx        # Global leaderboard view
 │   │   │   ├── LessonView.jsx
+│   │   │   ├── NameInputModal.jsx     # Score submission modal
+│   │   │   ├── TechNews.jsx
 │   │   │   └── ...
-│   │   ├── api.js       # API client (with AI & leaderboard endpoints)
-│   │   └── App.jsx
-│   └── vite.config.js   # proxies /api to :8081 in dev
+│   │   ├── api.js        # API client (with AI & leaderboard endpoints)
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   └── vite.config.js    # proxies /api to :8081 in dev
 ├── scripts/
-│   └── run.ps1          # convenience launcher
-├── tools/               # small developer CLIs and utilities
-│   ├── tiny-tutor/      # terminal-first lesson tutor (tools/tiny-tutor)
-│   └── autograder/      # simple Go autograder for coding challenges
+│   ├── run.ps1           # convenience launcher
+│   ├── setup.ps1         # local setup helper
+│   └── test-all.ps1      # test runner
+├── tools/                # small developer CLIs and utilities
+│   ├── tiny-tutor/       # terminal-first lesson tutor (tools/tiny-tutor)
+│   └── autograder/       # simple Go autograder for coding challenges
 └── README.md
 ```
 
@@ -166,13 +187,6 @@ See [docs/LESSON_SOURCES.md](docs/LESSON_SOURCES.md) for details.
 
 AvidLearner includes a **secure, global leaderboard** for all game modes with server-side validation to prevent cheating.
 
-### Features
-
-✅ **Three Game Modes**: Quiz, Typing, and Coding challenges  
-✅ **Anti-Cheat Protection**: All scores validated server-side  
-✅ **Persistent Storage**: Scores survive server restarts  
-✅ **Global Rankings**: Everyone competes on the same leaderboard  
-✅ **Easy Submission**: Click "Submit to Leaderboard" after completing any game
 
 ### How to Use
 
