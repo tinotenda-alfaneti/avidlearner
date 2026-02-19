@@ -22,20 +22,18 @@ import (
 
 	"avidlearner/ai"
 	"avidlearner/config"
-	. "avidlearner/internal/models"
+	"avidlearner/internal/models"
 	"avidlearner/lessons"
 )
 
 func registerAPIHandler() {
 
-		// Static frontend (vite build output)
 	frontendDist := filepath.Join("frontend", "dist")
 	if _, err := os.Stat(frontendDist); os.IsNotExist(err) {
 		frontendDist = "/app/frontend/dist"
 	}
 	http.Handle("/", withSession(http.FileServer(http.Dir(frontendDist))))
 
-	// Health
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok")
@@ -43,7 +41,7 @@ func registerAPIHandler() {
 
 	http.HandleFunc("/api/lessons", cors(handleLessons))
 	http.HandleFunc("/api/random", cors(handleRandom))
-	http.HandleFunc("/api/session", cors(handleSession)) // multi-stage + POSTs
+	http.HandleFunc("/api/session", cors(handleSession))
 	http.HandleFunc("/api/ai/generate", cors(handleAIGenerate))
 	http.HandleFunc("/api/ai/config", cors(handleAIConfig))
 	http.HandleFunc("/api/prochallenge", cors(handleProChallenge))
@@ -52,21 +50,15 @@ func registerAPIHandler() {
 	http.HandleFunc("/api/leaderboard", cors(handleLeaderboard))
 	http.HandleFunc("/api/leaderboard/submit", cors(handleLeaderboardSubmit))
 	http.HandleFunc("/api/typing/score", cors(handleTypingScore))
-	// News RSS proxy
 	http.HandleFunc("/api/news", cors(handleNewsFetch))
 }
 
-// ---------- Helpers ----------
-
-
-
-
 func updateLessonMap(allLessons []lessons.Lesson) {
-	newLessonsByCat := map[string][]Lesson{}
+	newLessonsByCat := map[string][]models.Lesson{}
 	newCategories := []string{}
 
 	for _, l := range allLessons {
-		mainLesson := Lesson{
+		mainLesson := models.Lesson{
 			Title:    l.Title,
 			Category: l.Category,
 			Text:     l.Text,
@@ -82,34 +74,33 @@ func updateLessonMap(allLessons []lessons.Lesson) {
 	}
 	sort.Strings(newCategories)
 
-	// Atomic update of globals
 	lessonsByCat = newLessonsByCat
 	categories = newCategories
 	log.Printf("Refreshed lesson map: %d lessons total", len(allLessons))
 }
 
-func loadLessons(path string) ([]Lesson, error) {
+func loadLessons(path string) ([]models.Lesson, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var L []Lesson
+	var L []models.Lesson
 	if err := json.Unmarshal(b, &L); err != nil {
 		return nil, err
 	}
 	return L, nil
 }
 
-func loadProChallenges(path string) ([]ProChallenge, map[string]ProChallenge, error) {
+func loadProChallenges(path string) ([]models.ProChallenge, map[string]models.ProChallenge, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, err
 	}
-	var list []ProChallenge
+	var list []models.ProChallenge
 	if err := json.Unmarshal(b, &list); err != nil {
 		return nil, nil, err
 	}
-	byID := make(map[string]ProChallenge, len(list))
+	byID := make(map[string]models.ProChallenge, len(list))
 	for _, ch := range list {
 		if ch.ID == "" {
 			continue
@@ -123,11 +114,11 @@ func loadLeaderboard(path string) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil // Fresh start is OK
+			return nil
 		}
 		return err
 	}
-	var entries []LeaderboardEntry
+	var entries []models.LeaderboardEntry
 	if err := json.Unmarshal(b, &entries); err != nil {
 		return err
 	}
@@ -135,13 +126,11 @@ func loadLeaderboard(path string) error {
 	return nil
 }
 
-// ---------- News RSS Fetcher ----------
 
 func fetchAndParseRSS(url string) ([]map[string]interface{}, error) {
 	return fetchAndParseRSSWithTTL(url, newsTTL)
 }
 
-// fetchAndParseRSSWithTTL fetches an RSS feed and caches it with the provided TTL.
 func fetchAndParseRSSWithTTL(url string, ttl time.Duration) ([]map[string]interface{}, error) {
 	// Check cache
 	newsCacheMu.RLock()
@@ -161,7 +150,7 @@ func fetchAndParseRSSWithTTL(url string, ttl time.Duration) ([]map[string]interf
 	}
 	defer resp.Body.Close()
 
-	var doc RssDoc
+	var doc models.RssDoc
 	dec := xml.NewDecoder(resp.Body)
 	if err := dec.Decode(&doc); err != nil {
 		return nil, err
@@ -200,7 +189,7 @@ func fetchAndParseRSSWithTTL(url string, ttl time.Duration) ([]map[string]interf
 	// Cache result
 	if b, err := json.Marshal(out); err == nil {
 		newsCacheMu.Lock()
-		newsCache[url] = NewsCacheEntry{Ts: time.Now(), Data: b}
+		newsCache[url] = models.NewsCacheEntry{Ts: time.Now(), Data: b}
 		newsCacheMu.Unlock()
 	}
 
@@ -386,8 +375,8 @@ func saveLeaderboard(path string) error {
 	return os.WriteFile(path, b, 0644)
 }
 
-func pickRandomLesson(cat string) *Lesson {
-	var pool []Lesson
+func pickRandomLesson(cat string) *models.Lesson {
+	var pool []models.Lesson
 	if cat == "" || strings.EqualFold(cat, "any") {
 		for _, ls := range lessonsByCat {
 			pool = append(pool, ls...)
@@ -402,15 +391,15 @@ func pickRandomLesson(cat string) *Lesson {
 	return &l
 }
 
-func allLessons() []Lesson {
-	var pool []Lesson
+func allLessons() []models.Lesson {
+	var pool []models.Lesson
 	for _, ls := range lessonsByCat {
 		pool = append(pool, ls...)
 	}
 	return pool
 }
 
-func findLessonByTitle(title string) *Lesson {
+func findLessonByTitle(title string) *models.Lesson {
 	for _, ls := range lessonsByCat {
 		for _, l := range ls {
 			if l.Title == title {
@@ -435,12 +424,12 @@ func uniqueStrings(ss []string) []string {
 	return out
 }
 
-func pickLessonForProfile(p *Profile, cat string, source string) *Lesson {
+func pickLessonForProfile(p *models.Profile, cat string, source string) *models.Lesson {
 	if p == nil {
 		return pickRandomLesson(cat)
 	}
 
-	var pool []Lesson
+	var pool []models.Lesson
 	if cat == "" || strings.EqualFold(cat, "any") {
 		for _, ls := range lessonsByCat {
 			pool = append(pool, ls...)
@@ -452,7 +441,7 @@ func pickLessonForProfile(p *Profile, cat string, source string) *Lesson {
 
 	// Filter by source if specified
 	if source != "" && source != "all" {
-		var filtered []Lesson
+		var filtered []models.Lesson
 		for _, l := range pool {
 			if l.Source == source {
 				filtered = append(filtered, l)
@@ -490,7 +479,7 @@ func pickLessonForProfile(p *Profile, cat string, source string) *Lesson {
 
 	selection := pool
 	if len(avoid) > 0 {
-		var candidates []Lesson
+		var candidates []models.Lesson
 		for _, l := range pool {
 			if _, ok := avoid[l.Title]; ok {
 				continue
@@ -534,7 +523,7 @@ func withSession(next http.Handler) http.Handler {
 	})
 }
 
-func getProfile(r *http.Request) *Profile {
+func getProfile(r *http.Request) *models.Profile {
 	c, err := r.Cookie("sid")
 	if err != nil {
 		return newProfile()
@@ -551,7 +540,7 @@ func getProfile(r *http.Request) *Profile {
 
 func handleLessons(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	_ = json.NewEncoder(w).Encode(LessonsResponse{
+	_ = json.NewEncoder(w).Encode(models.LessonsResponse{
 		Categories: categories,
 		Lessons:    lessonsByCat,
 	})
@@ -598,7 +587,7 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			p.LastLesson = lesson
-			_ = json.NewEncoder(w).Encode(SessionState{
+			_ = json.NewEncoder(w).Encode(models.SessionState{
 				Stage:      "lesson",
 				Lesson:     lesson,
 				CoinsTotal: p.Coins,
@@ -612,7 +601,7 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			q := p.CurrentQuiz[p.QuizIndex]
-			_ = json.NewEncoder(w).Encode(SessionState{
+			_ = json.NewEncoder(w).Encode(models.SessionState{
 				Stage:      "quiz",
 				Question:   q.Question,
 				Options:    q.Options,
@@ -646,7 +635,7 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 			return
 
 		case "startQuiz":
-			var pool []Lesson
+			var pool []models.Lesson
 			if len(p.LessonsSeen) == 0 {
 				pool = allLessons()
 			} else {
@@ -671,7 +660,7 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 			p.QuizIndex = 0
 			p.QuizScore = 0 // Reset score for new quiz
 			first := p.CurrentQuiz[0]
-			_ = json.NewEncoder(w).Encode(SessionState{
+			_ = json.NewEncoder(w).Encode(models.SessionState{
 				Stage:      "quiz",
 				Question:   first.Question,
 				Options:    first.Options,
@@ -710,7 +699,7 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 			p.QuizIndex++
 			more := p.QuizIndex < len(p.CurrentQuiz)
 
-			resp := SessionState{
+			resp := models.SessionState{
 				Stage:       "result",
 				Correct:     correct,
 				CoinsEarned: earned,
@@ -757,7 +746,7 @@ func handleProChallenge(w http.ResponseWriter, r *http.Request) {
 	}
 	topic := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("topic")))
 
-	var pool []ProChallenge
+	var pool []models.ProChallenge
 	for _, ch := range proChallenges {
 		if difficulty != "" && difficulty != "any" && !strings.EqualFold(ch.Difficulty, difficulty) {
 			continue
@@ -902,7 +891,7 @@ func handleProChallengeHint(w http.ResponseWriter, r *http.Request) {
 }
 
 // Build one MCQ for a lesson (correct = lesson explain/text; distractors from others)
-func buildQuizForLesson(l Lesson) QuizQuestion {
+func buildQuizForLesson(l models.Lesson) models.QuizQuestion {
 	question := fmt.Sprintf("Which statement best matches the concept '%s'?", l.Title)
 	correct := strings.TrimSpace(l.Explain)
 	if correct == "" {
@@ -939,7 +928,7 @@ func buildQuizForLesson(l Lesson) QuizQuestion {
 			break
 		}
 	}
-	return QuizQuestion{
+	return models.QuizQuestion{
 		LessonTitle:  l.Title,
 		Question:     question,
 		Options:      opts,
@@ -947,13 +936,13 @@ func buildQuizForLesson(l Lesson) QuizQuestion {
 	}
 }
 
-func runChallengeTests(parent context.Context, ch ProChallenge, source string) (ChallengeTestResult, error) {
-	var result ChallengeTestResult
+func runChallengeTests(parent context.Context, ch models.ProChallenge, source string) (models.ChallengeTestResult, error) {
+	var result models.ChallengeTestResult
 	if strings.Contains(ch.ID, "..") {
 		return result, fmt.Errorf("invalid challenge id")
 	}
 	if strings.TrimSpace(source) == "" {
-		result.Failures = []TestFailure{{Name: "submission", Output: "no code submitted"}}
+		result.Failures = []models.TestFailure{{Name: "submission", Output: "no code submitted"}}
 		return result, nil
 	}
 
@@ -997,13 +986,13 @@ func runChallengeTests(parent context.Context, ch ProChallenge, source string) (
 		result.Failures = extractFailures(result.Stdout + "\n" + result.Stderr)
 		if len(result.Failures) == 0 {
 			if errors.Is(runErr, context.DeadlineExceeded) || errors.Is(runCtx.Err(), context.DeadlineExceeded) {
-				result.Failures = []TestFailure{{Name: "timeout", Output: "tests exceeded execution time limit"}}
+				result.Failures = []models.TestFailure{{Name: "timeout", Output: "tests exceeded execution time limit"}}
 			} else if result.Stderr != "" {
-				result.Failures = []TestFailure{{Name: "tests", Output: result.Stderr}}
+				result.Failures = []models.TestFailure{{Name: "tests", Output: result.Stderr}}
 			} else if result.Stdout != "" {
-				result.Failures = []TestFailure{{Name: "tests", Output: result.Stdout}}
+				result.Failures = []models.TestFailure{{Name: "tests", Output: result.Stdout}}
 			} else {
-				result.Failures = []TestFailure{{Name: "tests", Output: runErr.Error()}}
+				result.Failures = []models.TestFailure{{Name: "tests", Output: runErr.Error()}}
 			}
 		}
 		return result, nil
@@ -1054,15 +1043,15 @@ func countTests(out string) int {
 	return count
 }
 
-func extractFailures(out string) []TestFailure {
+func extractFailures(out string) []models.TestFailure {
 	lines := strings.Split(out, "\n")
 	var (
-		current *TestFailure
-		result  []TestFailure
+		current *models.TestFailure
+		result  []models.TestFailure
 	)
 	flush := func() {
 		if current != nil {
-			result = append(result, TestFailure{
+			result = append(result, models.TestFailure{
 				Name:   current.Name,
 				Output: strings.TrimSpace(current.Output),
 			})
@@ -1082,7 +1071,7 @@ func extractFailures(out string) []TestFailure {
 			if len(fields) >= 3 {
 				name = fields[2]
 			}
-			current = &TestFailure{Name: name, Output: line}
+			current = &models.TestFailure{Name: name, Output: line}
 			continue
 		}
 		if strings.HasPrefix(line, "--- PASS:") || strings.HasPrefix(line, "--- SKIP:") || strings.HasPrefix(line, "PASS") || strings.HasPrefix(line, "FAIL") || strings.HasPrefix(line, "ok ") {
@@ -1180,7 +1169,7 @@ func handleAIGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert AI lesson to main Lesson type
-	mainLesson := &Lesson{
+	mainLesson := &models.Lesson{
 		Title:    lesson.Title,
 		Category: lesson.Category,
 		Text:     lesson.Text,
@@ -1191,7 +1180,7 @@ func handleAIGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return the generated lesson
-	response := SessionState{
+	response := models.SessionState{
 		Stage:   "lesson",
 		Lesson:  mainLesson,
 		Message: "AI-generated lesson",
@@ -1229,7 +1218,7 @@ func handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 	mode := r.URL.Query().Get("mode")
 	limit := 100 // default limit
 
-	filtered := []LeaderboardEntry{}
+	filtered := []models.LeaderboardEntry{}
 	for _, entry := range leaderboard {
 		if mode == "" || entry.Mode == mode {
 			filtered = append(filtered, entry)
@@ -1325,7 +1314,7 @@ func handleLeaderboardSubmit(w http.ResponseWriter, r *http.Request) {
 		req.Name = req.Name[:30]
 	}
 
-	entry := LeaderboardEntry{
+	entry := models.LeaderboardEntry{
 		Name:     req.Name,
 		Score:    req.Score,
 		Mode:     req.Mode,
@@ -1365,7 +1354,7 @@ func handleLeaderboardSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 // calculateRank determines the player's rank on the leaderboard
-func calculateRank(entry LeaderboardEntry) int {
+func calculateRank(entry models.LeaderboardEntry) int {
 	rank := 1
 	for _, e := range leaderboard {
 		if e.Mode == entry.Mode && e.Score > entry.Score {

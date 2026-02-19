@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"avidlearner/internal/models"
 	"avidlearner/internal/routes"
-	. "avidlearner/internal/models"
 	"avidlearner/lessons"
 )
 
@@ -28,7 +28,7 @@ func envOrDefault(key, fallback string) string {
 	return fallback
 }
 
-func loadSecretLessons(path string) []Lesson {
+func loadSecretLessons(path string) []models.Lesson {
 	if _, err := os.Stat(path); err != nil {
 		return nil
 	}
@@ -43,13 +43,13 @@ func loadSecretLessons(path string) []Lesson {
 	return secretLessons
 }
 
-func buildFetcherLessons(coreLessons []Lesson, secretLessons []Lesson) []lessons.Lesson {
+func buildFetcherLessons(coreLessons []models.Lesson, secretLessons []models.Lesson) []lessons.Lesson {
 	localLessons := make([]lessons.Lesson, 0, len(coreLessons)+len(secretLessons))
 	localLessons = appendFetcherLessons(localLessons, coreLessons, "local")
 	return appendFetcherLessons(localLessons, secretLessons, "secret-knowledge")
 }
 
-func appendFetcherLessons(dst []lessons.Lesson, src []Lesson, source string) []lessons.Lesson {
+func appendFetcherLessons(dst []lessons.Lesson, src []models.Lesson, source string) []lessons.Lesson {
 	for _, lesson := range src {
 		dst = append(dst, lessons.Lesson{
 			Title:    lesson.Title,
@@ -129,7 +129,7 @@ func main() {
 	}
 	if err := routes.LoadLeaderboard(leaderboardPath); err != nil {
 		log.Printf("Warning: failed to load leaderboard from %s: %v (starting fresh)", leaderboardPath, err)
-		routes.SetLeaderboard([]LeaderboardEntry{})
+		routes.SetLeaderboard([]models.LeaderboardEntry{})
 	}
 
 	// Save leaderboard periodically

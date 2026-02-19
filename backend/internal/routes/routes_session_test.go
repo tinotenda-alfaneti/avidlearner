@@ -1,15 +1,15 @@
-package main
+package routes
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"avidlearner/internal/routes"
+	"avidlearner/internal/models"
 )
 
 func TestWithSession(t *testing.T) {
-	handler := routes.WithSession(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := withSession(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	}))
@@ -59,7 +59,7 @@ func TestWithSession(t *testing.T) {
 		req.AddCookie(&http.Cookie{Name: "sid", Value: "existing-session-id"})
 		rr := httptest.NewRecorder()
 
-		routes.SetSession("existing-session-id", routes.NewProfile())
+		sessions["existing-session-id"] = newProfile()
 
 		handler.ServeHTTP(rr, req)
 
@@ -71,11 +71,11 @@ func TestWithSession(t *testing.T) {
 
 func TestGetProfile(t *testing.T) {
 	// Clear sessions
-	routes.ResetSessions()
+	sessions = map[string]*models.Profile{}
 
 	t.Run("returns new profile when no cookie", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
-		p := routes.GetProfile(req)
+		p := getProfile(req)
 
 		if p == nil {
 			t.Fatal("expected profile, got nil")
@@ -94,12 +94,12 @@ func TestGetProfile(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
 		req.AddCookie(&http.Cookie{Name: "sid", Value: "test-session"})
 
-		expectedProfile := routes.NewProfile()
+		expectedProfile := newProfile()
 		expectedProfile.Coins = 100
 		expectedProfile.XP = 50
-		routes.SetSession("test-session", expectedProfile)
+		sessions["test-session"] = expectedProfile
 
-		p := routes.GetProfile(req)
+		p := getProfile(req)
 
 		if p == nil {
 			t.Fatal("expected profile, got nil")
@@ -118,21 +118,21 @@ func TestGetProfile(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
 		req.AddCookie(&http.Cookie{Name: "sid", Value: "unknown-session"})
 
-		p := routes.GetProfile(req)
+		p := getProfile(req)
 
 		if p == nil {
 			t.Fatal("expected profile, got nil")
 		}
 
 		// Should create and store new profile
-		if _, ok := routes.Sessions()["unknown-session"]; !ok {
+		if _, ok := sessions["unknown-session"]; !ok {
 			t.Error("expected profile to be stored in sessions")
 		}
 	})
 }
 
 func TestNewProfile(t *testing.T) {
-	p := routes.NewProfile()
+	p := newProfile()
 
 	if p == nil {
 		t.Fatal("expected profile, got nil")
