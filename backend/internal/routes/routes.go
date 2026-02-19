@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"avidlearner/ai"
-	"avidlearner/config"
+	"avidlearner/featureflag"
 	"avidlearner/internal/models"
 	"avidlearner/lessons"
 )
@@ -1119,7 +1119,7 @@ func handleAIGenerate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	// Check if AI lessons are enabled
-	flags := config.GetFeatureFlags()
+	flags := featureflag.GetFeatureFlags()
 	if !flags.IsAILessonsEnabled() {
 		http.Error(w, `{"error":"AI lesson generation is currently disabled"}`, http.StatusServiceUnavailable)
 		return
@@ -1193,7 +1193,7 @@ func handleAIGenerate(w http.ResponseWriter, r *http.Request) {
 func handleAIConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
-	flags := config.GetFeatureFlags()
+	flags := featureflag.GetFeatureFlags()
 
 	response := map[string]interface{}{
 		"aiEnabled": flags.IsAILessonsEnabled(),
