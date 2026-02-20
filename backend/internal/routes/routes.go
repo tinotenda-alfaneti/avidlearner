@@ -20,10 +20,10 @@ import (
 	"strings"
 	"time"
 
-	"avidlearner/ai"
-	"avidlearner/featureflag"
+	"avidlearner/internal/ai"
+	"avidlearner/internal/featureflag"
 	"avidlearner/internal/models"
-	"avidlearner/lessons"
+	"avidlearner/internal/lessons"
 )
 
 func registerAPIHandler() {

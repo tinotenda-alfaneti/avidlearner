@@ -13,7 +13,7 @@ import (
 	"avidlearner/internal/config"
 	"avidlearner/internal/models"
 	"avidlearner/internal/routes"
-	"avidlearner/lessons"
+	"avidlearner/internal/lessons"
 )
 
 func Run(ctx context.Context) error {

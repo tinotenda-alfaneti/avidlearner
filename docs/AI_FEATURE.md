@@ -8,12 +8,12 @@ AvidLearner now supports AI-powered lesson generation using OpenAI or Anthropic 
 
 ### Components
 
-1. **Feature Flag System** (`backend/config/features.go`)
+1. **Feature Flag System** (`backend/internal/featureflag/features.go`)
    - Thread-safe singleton pattern
    - Environment-based configuration
    - Runtime toggle support for testing
 
-2. **AI Provider Interface** (`backend/ai/provider.go`)
+2. **AI Provider Interface** (`backend/internal/ai/provider.go`)
    - Abstract provider interface
    - OpenAI implementation
    - Anthropic implementation

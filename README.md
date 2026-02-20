@@ -32,16 +32,20 @@ Single container app: Go backend + React frontend (Vite) with optional PWA insta
 │   ├── go.mod
 │   ├── ai/
 │   │   └── provider.go           # AI provider interface & implementations
-│   ├── config/
-│   │   └── features.go           # Feature flag system
 │   ├── internal/
+│   │   ├── ai/
+│   │   │   └── provider.go       # AI provider interface & implementations
+│   │   ├── config/
+│   │   │   └── config.go         # App config + env defaults
+│   │   ├── featureflag/
+│   │   │   └── features.go       # Feature flag system
+│   │   ├── lessons/
+│   │   │   └── fetcher.go        # External lesson fetcher
 │   │   ├── models/
 │   │   │   └── models.go
 │   │   └── routes/
 │   │       ├── routes.go
 │   │       └── state.go
-│   ├── lessons/
-│   │   └── fetcher.go             # External lesson fetcher
 │   └── protests/                  # Go practice exercises (see subfolders)
 ├── frontend/             # Vite + React app w/ PWA manifest + SW
 │   ├── package.json

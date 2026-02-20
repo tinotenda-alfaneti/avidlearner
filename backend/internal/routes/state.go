@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"avidlearner/internal/models"
-	"avidlearner/lessons"
+	"avidlearner/internal/lessons"
 )
 
 const lessonRepeatWindow = 100

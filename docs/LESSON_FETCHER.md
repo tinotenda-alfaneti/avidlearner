@@ -64,7 +64,7 @@ lessonFetcher.StartBackgroundRefresh(context.Background(), 6*time.Hour)
 
 ### Add More Sources
 
-Edit `backend/lessons/fetcher.go` in the `refreshCache()` method:
+Edit `backend/internal/lessons/fetcher.go` in the `refreshCache()` method:
 
 ```go
 // Add new source
@@ -102,7 +102,7 @@ Run the lesson fetcher tests:
 
 ```bash
 cd backend
-go test ./lessons -v
+go test ./internal/lessons -v
 ```
 
 Run all tests:
