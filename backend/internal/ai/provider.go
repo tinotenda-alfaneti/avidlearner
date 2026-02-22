@@ -6,10 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"avidlearner/internal/httpx"
 )
 
 // Lesson represents a generated lesson
@@ -54,9 +55,7 @@ func NewOpenAIProvider(apiKey, model string) *OpenAIProvider {
 	return &OpenAIProvider{
 		apiKey: apiKey,
 		model:  model,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		httpClient: httpx.NewClient(30 * time.Second),
 	}
 }
 
@@ -71,9 +70,7 @@ func NewAnthropicProvider(apiKey, model string) *AnthropicProvider {
 	return &AnthropicProvider{
 		apiKey: apiKey,
 		model:  model,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		httpClient: httpx.NewClient(30 * time.Second),
 	}
 }
 
@@ -121,24 +118,22 @@ Focus on practical, actionable content suitable for intermediate to advanced eng
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewReader(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
+	resp, err := httpx.DoWithRetry(ctx, p.httpClient, func() (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewReader(jsonData))
+		if err != nil {
+			return nil, fmt.Errorf("create request: %w", err)
+		}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+p.apiKey)
-
-	resp, err := p.httpClient.Do(req)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+p.apiKey)
+		return req, nil
+	}, func(status int, body []byte) error {
+		return fmt.Errorf("OpenAI API error %d: %s", status, string(body))
+	})
 	if err != nil {
-		return nil, fmt.Errorf("execute request: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("OpenAI API error %d: %s", resp.StatusCode, string(body))
-	}
 
 	var result struct {
 		Choices []struct {
@@ -197,25 +192,23 @@ Focus on practical, actionable content for intermediate to advanced engineers.`,
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
+	resp, err := httpx.DoWithRetry(ctx, p.httpClient, func() (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(jsonData))
+		if err != nil {
+			return nil, fmt.Errorf("create request: %w", err)
+		}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", p.apiKey)
-	req.Header.Set("anthropic-version", "2023-06-01")
-
-	resp, err := p.httpClient.Do(req)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("x-api-key", p.apiKey)
+		req.Header.Set("anthropic-version", "2023-06-01")
+		return req, nil
+	}, func(status int, body []byte) error {
+		return fmt.Errorf("Anthropic API error %d: %s", status, string(body))
+	})
 	if err != nil {
-		return nil, fmt.Errorf("execute request: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Anthropic API error %d: %s", resp.StatusCode, string(body))
-	}
 
 	var result struct {
 		Content []struct {

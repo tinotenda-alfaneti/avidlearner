@@ -22,9 +22,12 @@ import (
 
 	"avidlearner/internal/ai"
 	"avidlearner/internal/featureflag"
+	"avidlearner/internal/httpx"
 	"avidlearner/internal/models"
 	"avidlearner/internal/lessons"
 )
+
+var newsHTTPClient = httpx.NewClient(15 * time.Second)
 
 func registerAPIHandler() {
 
@@ -127,11 +130,11 @@ func loadLeaderboard(path string) error {
 }
 
 
-func fetchAndParseRSS(url string) ([]map[string]interface{}, error) {
-	return fetchAndParseRSSWithTTL(url, newsTTL)
+func fetchAndParseRSS(ctx context.Context, url string) ([]map[string]interface{}, error) {
+	return fetchAndParseRSSWithTTL(ctx, url, newsTTL)
 }
 
-func fetchAndParseRSSWithTTL(url string, ttl time.Duration) ([]map[string]interface{}, error) {
+func fetchAndParseRSSWithTTL(ctx context.Context, url string, ttl time.Duration) ([]map[string]interface{}, error) {
 	// Check cache
 	newsCacheMu.RLock()
 	if e, ok := newsCache[url]; ok && time.Since(e.Ts) < ttl {
@@ -143,8 +146,11 @@ func fetchAndParseRSSWithTTL(url string, ttl time.Duration) ([]map[string]interf
 	}
 	newsCacheMu.RUnlock()
 
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Get(url)
+	resp, err := httpx.DoWithRetry(ctx, newsHTTPClient, func() (*http.Request, error) {
+		return http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	}, func(status int, _ []byte) error {
+		return fmt.Errorf("rss returned status %d", status)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +230,7 @@ func handleNewsFetch(w http.ResponseWriter, r *http.Request) {
 			out := map[string][]map[string]interface{}{}
 			for _, c := range cats {
 				url := fmt.Sprintf("https://tldr.tech/api/rss/%s", c)
-				items, err := fetchAndParseRSSWithTTL(url, tldrNewsTTL)
+				items, err := fetchAndParseRSSWithTTL(r.Context(), url, tldrNewsTTL)
 				if err != nil {
 					// continue on individual feed errors
 					out[c] = []map[string]interface{}{{"title": "Failed to fetch feed", "summary": err.Error()}}
@@ -237,7 +243,7 @@ func handleNewsFetch(w http.ResponseWriter, r *http.Request) {
 		}
 		// Single category: use RSS endpoint for that category
 		url := fmt.Sprintf("https://tldr.tech/api/rss/%s", cat)
-		items, err := fetchAndParseRSSWithTTL(url, tldrNewsTTL)
+		items, err := fetchAndParseRSSWithTTL(r.Context(), url, tldrNewsTTL)
 		if err != nil {
 			http.Error(w, fmt.Sprintf(`{"error":"failed to fetch tldr rss: %v"}`, err), http.StatusBadGateway)
 			return
@@ -249,7 +255,7 @@ func handleNewsFetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := fetchAndParseRSS(url)
+	items, err := fetchAndParseRSS(r.Context(), url)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"failed to fetch feed: %v"}`, err), http.StatusBadGateway)
 		return
@@ -259,23 +265,21 @@ func handleNewsFetch(w http.ResponseWriter, r *http.Request) {
 }
 
 // fetchTLDRLatest proxies tldr.tech's /api/latest/{category} JSON endpoint and normalizes results
-func fetchTLDRLatest(category string) ([]map[string]interface{}, error) {
+func fetchTLDRLatest(ctx context.Context, category string) ([]map[string]interface{}, error) {
 	// sanitize category into a simple path segment
 	seg := strings.TrimSpace(category)
 	seg = strings.ReplaceAll(seg, " ", "-")
 	apiURL := fmt.Sprintf("https://tldr.tech/api/latest/%s", seg)
 
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Get(apiURL)
+	resp, err := httpx.DoWithRetry(ctx, newsHTTPClient, func() (*http.Request, error) {
+		return http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	}, func(status int, body []byte) error {
+		return fmt.Errorf("tldr returned status %d: %s", status, strings.TrimSpace(string(body)))
+	})
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		b, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("tldr returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
-	}
 
 	// Read body and attempt flexible JSON decoding.
 	b, err := io.ReadAll(resp.Body)

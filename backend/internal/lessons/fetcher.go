@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"avidlearner/internal/httpx"
 )
 
 // Lesson represents a single lesson
@@ -39,9 +41,7 @@ func NewFetcher(localLessons []Lesson, cacheTTL time.Duration) *Fetcher {
 	return &Fetcher{
 		localLessons: localLessons,
 		cacheTTL:     cacheTTL,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		httpClient:   httpx.NewClient(10 * time.Second),
 	}
 }
 
@@ -143,20 +143,15 @@ func (f *Fetcher) fetchFromGitHub(ctx context.Context) ([]Lesson, error) {
 func (f *Fetcher) fetchSystemDesignPrimer(ctx context.Context) ([]Lesson, error) {
 	url := "https://raw.githubusercontent.com/donnemartin/system-design-primer/master/README.md"
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := f.httpClient.Do(req)
+	resp, err := httpx.DoWithRetry(ctx, f.httpClient, func() (*http.Request, error) {
+		return http.NewRequestWithContext(ctx, "GET", url, nil)
+	}, func(status int, _ []byte) error {
+		return fmt.Errorf("github returned status %d", status)
+	})
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("github returned status %d", resp.StatusCode)
-	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -170,20 +165,15 @@ func (f *Fetcher) fetchSystemDesignPrimer(ctx context.Context) ([]Lesson, error)
 func (f *Fetcher) fetchSecretKnowledge(ctx context.Context) ([]Lesson, error) {
 	url := "https://raw.githubusercontent.com/trimstray/the-book-of-secret-knowledge/master/README.md"
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := f.httpClient.Do(req)
+	resp, err := httpx.DoWithRetry(ctx, f.httpClient, func() (*http.Request, error) {
+		return http.NewRequestWithContext(ctx, "GET", url, nil)
+	}, func(status int, _ []byte) error {
+		return fmt.Errorf("github returned status %d", status)
+	})
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("github returned status %d", resp.StatusCode)
-	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -429,19 +419,13 @@ func (f *Fetcher) fetchFromDevTo(ctx context.Context) ([]Lesson, error) {
 	for _, tag := range tags {
 		url := fmt.Sprintf("https://dev.to/api/articles?tag=%s&per_page=10&top=7", tag)
 
-		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-		if err != nil {
-			continue
-		}
-
-		resp, err := f.httpClient.Do(req)
+		resp, err := httpx.DoWithRetry(ctx, f.httpClient, func() (*http.Request, error) {
+			return http.NewRequestWithContext(ctx, "GET", url, nil)
+		}, func(status int, _ []byte) error {
+			return fmt.Errorf("dev.to returned status %d", status)
+		})
 		if err != nil {
 			log.Printf("Error fetching Dev.to tag %s: %v", tag, err)
-			continue
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
 			continue
 		}
 

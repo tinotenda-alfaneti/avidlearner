@@ -9,7 +9,7 @@ type Lesson struct {
 	Explain  string   `json:"explain"`
 	UseCases []string `json:"useCases"`
 	Tips     []string `json:"tips"`
-	Source   string   `json:"source,omitempty"` // "local", "github", "devto"
+	Source   string   `json:"source,omitempty"`
 }
 
 type LessonsResponse struct {
