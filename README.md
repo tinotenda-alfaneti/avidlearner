@@ -199,6 +199,26 @@ AvidLearner includes a **secure, global leaderboard** for all game modes with se
 3. **Enter Your Name**: Type your name (max 30 characters)
 4. **View Rankings**: Click "View Leaderboard" on the dashboard to see top scores
 
+## Authentication & Profiles
+
+AvidLearner supports **signup/login with JWTs** and persistent user profiles. Profiles track:
+- Progress (coins, XP, quiz streak, typing best)
+- Stats (lessons read, quiz accuracy, coding submissions)
+- Saved lessons
+
+### Creating an Account
+
+When creating an account, you must **opt in to appear on the global leaderboard**. This opt-in is required at signup.
+
+### Config
+
+Add these to `.env`:
+```bash
+USERS_FILE=../data/users.json
+JWT_SECRET=dev-secret-change-me
+JWT_TTL_HOURS=168
+```
+
 ### Score Types
 
 - **Quiz Mode**: Number of correct answers in your quiz session

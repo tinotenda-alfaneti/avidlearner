@@ -56,6 +56,16 @@ func run(ctx context.Context, cfg config.Config) error {
 
 	startLeaderboardSaver(ctx, cfg.LeaderboardFile, cfg.LeaderboardSaveEvery)
 
+	if err := routes.LoadUsers(cfg.UsersFile); err != nil {
+		log.Printf("Warning: failed to load users from %s: %v (starting fresh)", cfg.UsersFile, err)
+	}
+
+	if err := routes.SetAuthConfig(cfg.AuthSecret, cfg.AuthTokenTTL); err != nil {
+		return fmt.Errorf("auth config: %w", err)
+	}
+
+	startUsersSaver(ctx, cfg.UsersFile, cfg.UsersSaveEvery)
+
 	routes.RegisterAPIHandler()
 
 	return runServer(ctx, cfg.Port, cfg.ShutdownTimeout)
@@ -130,6 +140,23 @@ func startLeaderboardSaver(ctx context.Context, path string, every time.Duration
 			case <-ticker.C:
 				if err := routes.SaveLeaderboard(path); err != nil {
 					log.Printf("Error saving leaderboard: %v", err)
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+}
+
+func startUsersSaver(ctx context.Context, path string, every time.Duration) {
+	go func() {
+		ticker := time.NewTicker(every)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := routes.SaveUsers(path); err != nil {
+					log.Printf("Error saving users: %v", err)
 				}
 			case <-ctx.Done():
 				return

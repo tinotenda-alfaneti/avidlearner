@@ -28,6 +28,9 @@ export default function LessonView({
   aiEnabled = false,
   onNext,
   onStartQuiz,
+  onSaveLesson,
+  isSaved = false,
+  saveRequiresAuth = false,
   onExit
 }) {
   if (!lesson) return null;
@@ -103,8 +106,19 @@ export default function LessonView({
         <ul>{(lesson.tips||[]).map((x,i)=>(<li key={i}>{linkifyText(x)}</li>))}</ul>
       </div>
 
-      <div className="row" style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
+      {saveRequiresAuth && (
+        <div className="muted" style={{ marginTop: 8 }}>
+          Sign in to save lessons and keep your progress across devices.
+        </div>
+      )}
+
+      <div className="row lesson-actions" style={{ marginTop: 12 }}>
         <button className="primary" onClick={onNext}>Next concept</button>
+        {onSaveLesson && (
+          <button className="ghost" onClick={onSaveLesson} disabled={isSaved}>
+            {isSaved ? 'Saved' : saveRequiresAuth ? 'Sign in to save' : 'Save lesson'}
+          </button>
+        )}
         <button className="primary" onClick={onStartQuiz}>Start quiz</button>
       </div>
 

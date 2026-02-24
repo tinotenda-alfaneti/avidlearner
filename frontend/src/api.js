@@ -1,6 +1,8 @@
 // Offline detection and error handling utilities
 const OFFLINE_ERROR_MSG = 'You are offline. Please check your connection.';
 const STORAGE_KEY_LESSONS = 'avidlearner_lessons_cache';
+const AUTH_TOKEN_KEY = 'avidlearner_auth_token';
+const AUTH_USER_KEY = 'avidlearner_auth_user';
 
 function isOnline() {
   return navigator.onLine;
@@ -30,6 +32,125 @@ function getFromLocalStorage(key) {
   }
 }
 
+function apiFetch(url, options = {}) {
+  const token = getAuthToken();
+  const headers = { ...(options.headers || {}) };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const hasHeaders = Object.keys(headers).length > 0;
+  if (!hasHeaders && Object.keys(options).length === 0) {
+    return fetch(url);
+  }
+  const merged = { ...options };
+  if (hasHeaders) {
+    merged.headers = headers;
+  }
+  return fetch(url, merged);
+}
+
+export function getAuthToken() {
+  return localStorage.getItem(AUTH_TOKEN_KEY) || '';
+}
+
+export function getCachedUser() {
+  return getFromLocalStorage(AUTH_USER_KEY);
+}
+
+function setAuthSession(token, user) {
+  if (token) {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+  }
+  if (user) {
+    saveToLocalStorage(AUTH_USER_KEY, user);
+  }
+}
+
+export function clearAuthSession() {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
+}
+
+export async function signup({ username, password, leaderboardOptIn }) {
+  const res = await apiFetch('/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, leaderboardOptIn })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to create account');
+  }
+  setAuthSession(data.token, data.user);
+  return data.user;
+}
+
+export async function login({ username, password }) {
+  const res = await apiFetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to sign in');
+  }
+  setAuthSession(data.token, data.user);
+  return data.user;
+}
+
+export async function getProfile() {
+  const res = await apiFetch('/api/profile');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to load profile');
+  }
+  saveToLocalStorage(AUTH_USER_KEY, data);
+  return data;
+}
+
+export async function updateProfile(patch) {
+  const res = await apiFetch('/api/profile', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch || {})
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update profile');
+  }
+  saveToLocalStorage(AUTH_USER_KEY, data);
+  return data;
+}
+
+export async function saveLesson(lesson) {
+  const res = await apiFetch('/api/profile/lessons/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(lesson || {})
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to save lesson');
+  }
+  saveToLocalStorage(AUTH_USER_KEY, data);
+  return data;
+}
+
+export async function removeSavedLesson(lesson) {
+  const res = await apiFetch('/api/profile/lessons/remove', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(lesson || {})
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to remove lesson');
+  }
+  saveToLocalStorage(AUTH_USER_KEY, data);
+  return data;
+}
+
 export async function getLessons() {
   if (!isOnline()) {
     const cached = getFromLocalStorage(STORAGE_KEY_LESSONS);
@@ -38,7 +159,7 @@ export async function getLessons() {
   }
   
   try {
-    const res = await fetch('/api/lessons');
+    const res = await apiFetch('/api/lessons');
     if (!res.ok) throw new Error('Failed to load lessons');
     const data = await res.json();
     saveToLocalStorage(STORAGE_KEY_LESSONS, data);
@@ -58,7 +179,7 @@ export async function getAIConfig() {
   }
   
   try {
-    const res = await fetch('/api/ai/config');
+    const res = await apiFetch('/api/ai/config');
     if (!res.ok) return { aiEnabled: false };
     return res.json();
   } catch (error) {
@@ -72,7 +193,7 @@ export async function generateAILesson(category, topic) {
     throw new Error('AI generation requires an internet connection');
   }
   
-  const res = await fetch('/api/ai/generate', {
+  const res = await apiFetch('/api/ai/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ category, topic })
@@ -96,7 +217,7 @@ export async function randomLesson(category = 'any') {
     throw createOfflineError();
   }
   
-  const res = await fetch(`/api/random?category=${encodeURIComponent(category)}`);
+  const res = await apiFetch(`/api/random?category=${encodeURIComponent(category)}`);
   if (!res.ok) throw new Error('No lesson available');
   return res.json();
 }
@@ -112,14 +233,14 @@ export async function getReadingLesson(category = 'any', source = 'all') {
     category: category,
     source: source
   });
-  const res = await fetch(`/api/session?${params}`);
+  const res = await apiFetch(`/api/session?${params}`);
   if (!res.ok) throw new Error('Failed to get lesson');
   return res.json();
 }
 
 // Add current lesson to study list (server-side)
 export async function addLessonToQuiz(title) {
-  const res = await fetch('/api/session?stage=add', {
+  const res = await apiFetch('/api/session?stage=add', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title })
@@ -130,21 +251,21 @@ export async function addLessonToQuiz(title) {
 
 // Build quiz from lessons seen (or all if none)
 export async function startQuiz() {
-  const res = await fetch('/api/session?stage=startQuiz', { method: 'POST' });
+  const res = await apiFetch('/api/session?stage=startQuiz', { method: 'POST' });
   if (!res.ok) throw new Error('Failed to start quiz');
   return res.json();
 }
 
 // Fetch current question (index + total)
 export async function getCurrentQuiz() {
-  const res = await fetch('/api/session?stage=quiz');
+  const res = await apiFetch('/api/session?stage=quiz');
   if (!res.ok) throw new Error('No active quiz');
   return res.json();
 }
 
 // Submit answer; server returns either the next question or end-of-quiz result
 export async function answerQuiz(answerIndex) {
-  const res = await fetch('/api/session?stage=answer', {
+  const res = await apiFetch('/api/session?stage=answer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ answerIndex })
@@ -158,13 +279,13 @@ export async function getProChallenge({ topic, difficulty } = {}) {
   if (topic) params.set('topic', topic);
   if (difficulty) params.set('difficulty', difficulty);
   const qs = params.toString();
-  const res = await fetch(`/api/prochallenge${qs ? `?${qs}` : ''}`);
+  const res = await apiFetch(`/api/prochallenge${qs ? `?${qs}` : ''}`);
   if (!res.ok) throw new Error('Unable to fetch challenge');
   return res.json();
 }
 
 export async function submitProChallenge({ id, code }) {
-  const res = await fetch('/api/prochallenge/submit', {
+  const res = await apiFetch('/api/prochallenge/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, code })
@@ -174,7 +295,7 @@ export async function submitProChallenge({ id, code }) {
 }
 
 export async function requestProHint(id) {
-  const res = await fetch('/api/prochallenge/hint', {
+  const res = await apiFetch('/api/prochallenge/hint', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id })
@@ -187,16 +308,18 @@ export async function requestProHint(id) {
 
 export async function getLeaderboard(mode = '') {
   const url = mode ? `/api/leaderboard?mode=${encodeURIComponent(mode)}` : '/api/leaderboard';
-  const res = await fetch(url);
+  const res = await apiFetch(url);
   if (!res.ok) throw new Error('Failed to get leaderboard');
   return res.json();
 }
 
 export async function submitToLeaderboard(name, score, mode, category = '') {
-  const res = await fetch('/api/leaderboard/submit', {
+  const body = { score, mode, category };
+  if (name) body.name = name;
+  const res = await apiFetch('/api/leaderboard/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, score, mode, category })
+    body: JSON.stringify(body)
   });
   if (!res.ok) throw new Error('Failed to submit score');
   return res.json();
@@ -204,7 +327,7 @@ export async function submitToLeaderboard(name, score, mode, category = '') {
 
 // Update typing score server-side
 export async function updateTypingScore(score) {
-  const res = await fetch('/api/typing/score', {
+  const res = await apiFetch('/api/typing/score', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ score })
@@ -224,7 +347,7 @@ export async function getTLDR(category = 'tech') {
   }
 
   try {
-    const res = await fetch(`/api/news?source=tldr&category=${encodeURIComponent(category)}`);
+    const res = await apiFetch(`/api/news?source=tldr&category=${encodeURIComponent(category)}`);
     if (!res.ok) throw new Error('Failed to fetch TLDRs');
     const data = await res.json();
     saveToLocalStorage(STORAGE_KEY_TLDR, data);

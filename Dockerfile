@@ -23,6 +23,6 @@ COPY --from=backend /out/server /app/server
 COPY --from=frontend /app/dist /app/frontend/dist
 COPY data /app/data
 COPY backend/protests /app/backend/protests
-ENV PORT=8081 LESSONS_FILE=/app/data/lessons.json
+ENV PORT=8081 LESSONS_FILE=/app/data/lessons.json USERS_FILE=/app/data/users.json
 EXPOSE 8081
 CMD ["/app/server"]

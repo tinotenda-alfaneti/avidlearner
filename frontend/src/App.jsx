@@ -9,8 +9,25 @@ import ProModeView from './components/ProModeView';
 import AILessonGenerator from './components/AILessonGenerator';
 import Leaderboard from './components/Leaderboard';
 import NameInputModal from './components/NameInputModal';
+import AccountModal from './components/AccountModal';
+import ProfileModal from './components/ProfileModal';
 import OfflineIndicator from './components/OfflineIndicator';
-import { getLessons, getReadingLesson, addLessonToQuiz, startQuiz, answerQuiz, getAIConfig } from './api';
+import {
+  getLessons,
+  getReadingLesson,
+  addLessonToQuiz,
+  startQuiz,
+  answerQuiz,
+  getAIConfig,
+  getCachedUser,
+  getAuthToken,
+  getProfile,
+  clearAuthSession,
+  updateProfile,
+  saveLesson,
+  removeSavedLesson,
+  submitToLeaderboard
+} from './api';
 
 export default function App() {
   const [mode, setMode] = useState('dashboard'); // dashboard | reading | quiz | result | typing | promode | ai-generate
@@ -23,6 +40,10 @@ export default function App() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
   const [pendingScore, setPendingScore] = useState(null);
+  const [user, setUser] = useState(getCachedUser());
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  const [showProfile, setShowProfile] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('any');
@@ -52,6 +73,24 @@ export default function App() {
       .then(config => setAiEnabled(config.aiEnabled || false))
       .catch(() => setAiEnabled(false));
   }, []);
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) return;
+    getProfile()
+      .then((profile) => setUser(profile))
+      .catch(() => {
+        clearAuthSession();
+        setUser(null);
+      });
+  }, []);
+  useEffect(() => {
+    if (!user?.profile) return;
+    setCoins(typeof user.profile.coins === 'number' ? user.profile.coins : 0);
+    setXp(typeof user.profile.xp === 'number' ? user.profile.xp : 0);
+    setQuizStreak(typeof user.profile.quizStreak === 'number' ? user.profile.quizStreak : 0);
+    setTypingStreak(typeof user.profile.typingStreak === 'number' ? user.profile.typingStreak : 0);
+    setTypingBest(typeof user.profile.typingBest === 'number' ? user.profile.typingBest : 0);
+  }, [user?.id]);
   useEffect(() => { localStorage.setItem('coins', String(coins)); }, [coins]);
   useEffect(() => { localStorage.setItem('xp', String(xp)); }, [xp]);
   useEffect(() => { localStorage.setItem('quizStreak', String(quizStreak)); }, [quizStreak]);
@@ -191,20 +230,127 @@ export default function App() {
     startReading();
   }
 
-  function headerRight() {
-    return <div style={{fontSize:12,color:'#7d89b0'}}>Built with Go + React</div>;
+  function openAuthModal(nextMode) {
+    setAuthMode(nextMode || 'login');
+    setShowAuth(true);
   }
 
-  function handleTypingStats({ streak, best }) {
+  function handleAuthSuccess(nextUser) {
+    setUser(nextUser);
+  }
+
+  function handleLogout() {
+    clearAuthSession();
+    setUser(null);
+    setShowProfile(false);
+  }
+
+  async function refreshProfile() {
+    try {
+      const profile = await getProfile();
+      setUser(profile);
+    } catch (err) {
+      clearAuthSession();
+      setUser(null);
+    }
+  }
+
+  function isLessonSaved(lesson) {
+    if (!user?.profile?.savedLessons || !lesson) return false;
+    return user.profile.savedLessons.some(
+      (saved) =>
+        saved.title === lesson.title &&
+        saved.category === lesson.category
+    );
+  }
+
+  async function handleSaveLesson() {
+    if (!currentLesson) return;
+    if (!user) {
+      openAuthModal('signup');
+      return;
+    }
+    try {
+      const updated = await saveLesson({
+        title: currentLesson.title,
+        category: currentLesson.category,
+        source: currentLesson.source
+      });
+      setUser(updated);
+    } catch (err) {
+      console.error(err);
+      alert(err?.message || 'Failed to save lesson');
+    }
+  }
+
+  async function handleRemoveSavedLesson(lesson) {
+    if (!lesson) return;
+    try {
+      const updated = await removeSavedLesson({
+        title: lesson.title,
+        category: lesson.category
+      });
+      setUser(updated);
+    } catch (err) {
+      console.error(err);
+      alert(err?.message || 'Failed to remove lesson');
+    }
+  }
+
+  function headerRight() {
+    return (
+      <div className="header-actions">
+        {user ? (
+          <div className="header-buttons">
+            <button className="ghost" onClick={() => { setShowProfile(true); refreshProfile(); }}>
+              {user.username}
+            </button>
+            <button className="ghost" onClick={handleLogout}>Sign out</button>
+          </div>
+        ) : (
+          <div className="header-buttons">
+            <button className="ghost" onClick={() => openAuthModal('login')}>Sign in</button>
+            <button className="primary btn-sm" onClick={() => openAuthModal('signup')}>Create account</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  async function handleTypingStats({ streak, best }) {
     if (typeof streak === 'number') {
       setTypingStreak(streak);
     }
     if (typeof best === 'number') {
       setTypingBest(prev => Math.max(prev, best));
     }
+    if (user) {
+      try {
+        const updated = await updateProfile({
+          typingStreak: typeof streak === 'number' ? streak : undefined,
+          typingBest: typeof best === 'number' ? best : undefined
+        });
+        setUser(updated);
+      } catch (err) {
+        console.error(err);
+      }
+    }
   }
 
-  function promptLeaderboardSubmit(score, mode, category = '') {
+  async function promptLeaderboardSubmit(score, mode, category = '') {
+    if (user) {
+      if (!user.leaderboardOptIn) {
+        alert('Your account is not opted in to the leaderboard.');
+        return;
+      }
+      try {
+        await submitToLeaderboard('', score, mode, category);
+        setShowLeaderboard(true);
+        return;
+      } catch (error) {
+        console.error('Failed to submit score:', error);
+      }
+    }
     setPendingScore({ score, mode, category });
     setShowNameInput(true);
   }
@@ -273,6 +419,9 @@ export default function App() {
             aiEnabled={aiEnabled}
             onNext={nextConcept}
             onStartQuiz={beginQuiz}
+            onSaveLesson={handleSaveLesson}
+            isSaved={isLessonSaved(currentLesson)}
+            saveRequiresAuth={!user}
             onExit={()=>setMode('dashboard')}
           />
         )}
@@ -316,7 +465,22 @@ export default function App() {
 
       <OfflineIndicator />
 
-      
+      {showAuth && (
+        <AccountModal
+          initialMode={authMode}
+          onClose={() => setShowAuth(false)}
+          onAuth={handleAuthSuccess}
+        />
+      )}
+
+      {showProfile && user && (
+        <ProfileModal
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onLogout={handleLogout}
+          onRemoveLesson={handleRemoveSavedLesson}
+        />
+      )}
 
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
       

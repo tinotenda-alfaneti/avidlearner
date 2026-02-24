@@ -54,6 +54,12 @@ func registerAPIHandler() {
 	http.HandleFunc("/api/leaderboard/submit", cors(handleLeaderboardSubmit))
 	http.HandleFunc("/api/typing/score", cors(handleTypingScore))
 	http.HandleFunc("/api/news", cors(handleNewsFetch))
+	http.HandleFunc("/api/auth/signup", cors(handleSignup))
+	http.HandleFunc("/api/auth/login", cors(handleLogin))
+	http.HandleFunc("/api/auth/me", cors(handleMe))
+	http.HandleFunc("/api/profile", cors(handleProfile))
+	http.HandleFunc("/api/profile/lessons/save", cors(handleSaveLesson))
+	http.HandleFunc("/api/profile/lessons/remove", cors(handleRemoveLesson))
 }
 
 func updateLessonMap(allLessons []lessons.Lesson) {
@@ -630,6 +636,17 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 			if body.Title != "" {
 				p.LessonsSeen = uniqueStrings(append(p.LessonsSeen, body.Title))
 			}
+			if token := bearerToken(r); token != "" {
+				if user, err := authUserFromRequest(r); err == nil {
+					updateUserByID(user.ID, func(u *models.User) {
+						ensureProfileDefaults(&u.Profile)
+						u.Profile.LessonsSeen = dedupeStrings(append(u.Profile.LessonsSeen, body.Title))
+						u.Profile.Stats.LessonsRead = len(u.Profile.LessonsSeen)
+						u.Profile.Stats.LastActive = time.Now()
+						u.Profile.UpdatedAt = time.Now()
+					})
+				}
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"stage":       "added",
 				"lessonsSeen": p.LessonsSeen,
@@ -698,6 +715,21 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 				p.QuizScore++ // Track correct answers server-side
 			} else {
 				p.Streak = 0
+			}
+			if token := bearerToken(r); token != "" {
+				if user, err := authUserFromRequest(r); err == nil {
+					updateUserByID(user.ID, func(u *models.User) {
+						u.Profile.Coins = p.Coins
+						u.Profile.XP = p.XP
+						u.Profile.QuizStreak = p.Streak
+						u.Profile.Stats.QuizzesTaken++
+						if correct {
+							u.Profile.Stats.QuizCorrect++
+						}
+						u.Profile.Stats.LastActive = time.Now()
+						u.Profile.UpdatedAt = time.Now()
+					})
+				}
 			}
 			// advance
 			p.QuizIndex++
@@ -815,6 +847,23 @@ func handleProChallengeSubmit(w http.ResponseWriter, r *http.Request) {
 		p.Coins += ch.Reward.Coins
 		p.XP += ch.Reward.XP
 		p.CodingScore += ch.Reward.XP // Track coding score for leaderboard
+	}
+	if token := bearerToken(r); token != "" {
+		if user, err := authUserFromRequest(r); err == nil {
+			updateUserByID(user.ID, func(u *models.User) {
+				u.Profile.Coins = p.Coins
+				u.Profile.XP = p.XP
+				u.Profile.CodingScore = p.CodingScore
+				u.Profile.Stats.CodingSubmissions++
+				if res.Passed {
+					u.Profile.Stats.CodingPassed++
+				}
+				u.Profile.Stats.LastActive = time.Now()
+				u.Profile.UpdatedAt = time.Now()
+			})
+		}
+	}
+	if res.Passed {
 		resp := map[string]any{
 			"passed":      true,
 			"total":       res.Total,
@@ -1106,8 +1155,8 @@ func cors(next http.HandlerFunc) http.HandlerFunc {
 			w.Header().Set("Access-Control-Allow-Origin", allowed)
 		}
 		w.Header().Set("Vary", "Origin")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -1252,6 +1301,12 @@ func handleLeaderboardSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := getProfile(r)
+	var authUser *models.User
+	if token := bearerToken(r); token != "" {
+		if user, err := authUserFromRequest(r); err == nil {
+			authUser = user
+		}
+	}
 
 	var req struct {
 		Name     string `json:"name"`
@@ -1265,7 +1320,13 @@ func handleLeaderboardSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
+	if authUser != nil {
+		if !authUser.LeaderboardOptIn {
+			http.Error(w, `{"error":"leaderboard opt-in required"}`, http.StatusForbidden)
+			return
+		}
+		req.Name = authUser.Username
+	} else if req.Name == "" {
 		req.Name = "Anonymous"
 	}
 	if req.Mode == "" {
@@ -1396,6 +1457,18 @@ func handleTypingScore(w http.ResponseWriter, r *http.Request) {
 	// Update typing score (keep best)
 	if req.Score > p.TypingScore {
 		p.TypingScore = req.Score
+	}
+	if token := bearerToken(r); token != "" {
+		if user, err := authUserFromRequest(r); err == nil {
+			updateUserByID(user.ID, func(u *models.User) {
+				if p.TypingScore > u.Profile.TypingBest {
+					u.Profile.TypingBest = p.TypingScore
+				}
+				u.Profile.Stats.TypingSessions++
+				u.Profile.Stats.LastActive = time.Now()
+				u.Profile.UpdatedAt = time.Now()
+			})
+		}
 	}
 
 	response := map[string]interface{}{
