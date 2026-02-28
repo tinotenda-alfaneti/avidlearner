@@ -45,20 +45,20 @@ header {
   border-radius: 999px;
   padding: 9px 16px;
   font-size: 13px;
-  border: 1px solid rgba(32, 178, 170, 0.45);
-  background: linear-gradient(135deg, #2b6cff 0%, #20b2aa 100%);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(32, 178, 170, 0.25);
+  border: 1px solid rgba(0, 224, 255, 0.6);
+  background: linear-gradient(135deg, #2b6cff 0%, #00e0ff 100%);
+  color: #e8f6ff;
+  box-shadow: 0 0 18px rgba(0, 224, 255, 0.35), 0 0 36px rgba(43, 108, 255, 0.25);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .header-buttons button:hover {
   transform: translateY(-1px);
-  border-color: rgba(32, 178, 170, 0.7);
-  box-shadow: 0 8px 24px rgba(32, 178, 170, 0.35);
+  border-color: rgba(0, 224, 255, 0.9);
+  box-shadow: 0 0 22px rgba(0, 224, 255, 0.55), 0 0 44px rgba(43, 108, 255, 0.35);
 }
 .header-buttons .ghost {
-  border-color: rgba(65, 105, 225, 0.55);
-  background: linear-gradient(135deg, rgba(65, 105, 225, 0.95) 0%, rgba(46, 91, 255, 0.95) 100%);
+  border-color: rgba(0, 224, 255, 0.55);
+  background: linear-gradient(135deg, rgba(43, 108, 255, 0.95) 0%, rgba(0, 224, 255, 0.9) 100%);
 }
 .btn-sm {
   padding: 8px 12px;
@@ -702,25 +702,26 @@ button.home:hover {
 }
 
 .mode-btn.primary {
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #2b6cff 0%, #00e0ff 100%);
   color: white;
+  box-shadow: 0 0 20px rgba(0, 224, 255, 0.4), 0 0 36px rgba(43, 108, 255, 0.3);
 }
 
 .mode-btn.primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(32, 178, 170, 0.4);
+  box-shadow: 0 0 26px rgba(0, 224, 255, 0.6), 0 0 52px rgba(43, 108, 255, 0.4);
 }
 
 .mode-btn.secondary {
-  background: linear-gradient(135deg, rgba(65, 105, 225, 0.95) 0%, rgba(32, 178, 170, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(43, 108, 255, 0.95) 0%, rgba(0, 224, 255, 0.95) 100%);
   color: #fff;
   border: none;
-  box-shadow: 0 6px 18px rgba(32, 178, 170, 0.25);
+  box-shadow: 0 0 18px rgba(0, 224, 255, 0.35), 0 0 30px rgba(43, 108, 255, 0.25);
 }
 
 .mode-btn.secondary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(32, 178, 170, 0.35);
+  box-shadow: 0 0 24px rgba(0, 224, 255, 0.6), 0 0 48px rgba(43, 108, 255, 0.35);
 }
 
 /* ---------- Leaderboard Modal ---------- */
@@ -907,17 +908,17 @@ button.home:hover {
 /* ---------- Auth Modal ---------- */
 .auth-modal {
   max-width: 560px;
-  background: radial-gradient(120% 120% at 50% 0%, rgba(43, 108, 255, 0.25) 0%, rgba(10, 16, 36, 0.95) 60%);
-  border: 1px solid rgba(65, 105, 225, 0.25);
-  box-shadow: 0 30px 80px rgba(5, 10, 30, 0.6);
+  background: radial-gradient(120% 120% at 50% 0%, rgba(0, 224, 255, 0.18) 0%, rgba(12, 18, 40, 0.98) 55%);
+  border: 1px solid rgba(0, 224, 255, 0.25);
+  box-shadow: 0 0 45px rgba(0, 224, 255, 0.2), 0 0 90px rgba(43, 108, 255, 0.25);
 }
 .auth-modal .leaderboard-title {
-  color: #47c5ff;
+  color: #6ee7ff;
   -webkit-text-fill-color: initial;
   background: none;
 }
 .auth-modal .modal-subtitle {
-  color: rgba(207, 214, 246, 0.8);
+  color: rgba(190, 216, 255, 0.85);
 }
 .auth-tabs {
   display: flex;
@@ -926,21 +927,22 @@ button.home:hover {
   margin-bottom: 18px;
   padding: 6px;
   border-radius: 999px;
-  background: rgba(15, 23, 51, 0.9);
-  border: 1px solid rgba(65, 105, 225, 0.2);
+  background: rgba(12, 18, 40, 0.9);
+  border: 1px solid rgba(0, 224, 255, 0.25);
+  box-shadow: inset 0 0 18px rgba(0, 224, 255, 0.1);
 }
 .auth-tabs .tab-btn {
   flex: 1;
   border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
-  color: rgba(207, 214, 246, 0.8);
+  color: rgba(196, 220, 255, 0.85);
 }
 .auth-tabs .tab-btn.active {
-  background: linear-gradient(135deg, #28c7f0 0%, #2b6cff 100%);
+  background: linear-gradient(135deg, #00e0ff 0%, #2b6cff 100%);
   color: #fff;
-  border-color: rgba(72, 157, 255, 0.7);
-  box-shadow: 0 8px 20px rgba(43, 108, 255, 0.4);
+  border-color: rgba(0, 224, 255, 0.7);
+  box-shadow: 0 0 18px rgba(0, 224, 255, 0.5), 0 0 36px rgba(43, 108, 255, 0.35);
 }
 .auth-form {
   display: flex;
@@ -958,8 +960,8 @@ button.home:hover {
   color: #cfd6f6;
 }
 .auth-input {
-  background: rgba(13, 19, 41, 0.95);
-  border: 1px solid rgba(45, 63, 116, 0.75);
+  background: rgba(10, 16, 36, 0.95);
+  border: 1px solid rgba(0, 224, 255, 0.25);
   border-radius: 14px;
   padding: 12px 16px;
   font-size: 15px;
@@ -971,9 +973,9 @@ button.home:hover {
 }
 .auth-input:focus {
   outline: none;
-  background: rgba(16, 24, 52, 0.95);
-  border-color: rgba(72, 157, 255, 0.8);
-  box-shadow: 0 0 0 3px rgba(72, 157, 255, 0.2);
+  background: rgba(14, 22, 48, 0.95);
+  border-color: rgba(0, 224, 255, 0.8);
+  box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.18);
 }
 .form-hint {
   font-size: 12px;
@@ -994,14 +996,14 @@ button.home:hover {
 }
 .auth-submit {
   min-width: 160px;
-  background: linear-gradient(135deg, #2b6cff 0%, #1e4fd8 100%);
-  box-shadow: 0 10px 24px rgba(43, 108, 255, 0.35);
+  background: linear-gradient(135deg, #2b6cff 0%, #00e0ff 100%);
+  box-shadow: 0 0 22px rgba(0, 224, 255, 0.5), 0 0 40px rgba(43, 108, 255, 0.3);
 }
 .auth-cancel {
   min-width: 120px;
-  background: rgba(23, 30, 55, 0.9);
-  border: 1px solid rgba(90, 110, 170, 0.4);
-  color: #dbe5ff;
+  background: rgba(10, 16, 36, 0.9);
+  border: 1px solid rgba(0, 224, 255, 0.25);
+  color: #cfe9ff;
 }
 
 /* ---------- Profile Modal ---------- */
@@ -1135,7 +1137,7 @@ button.home:hover {
 }
 
 .leaderboard-view-btn {
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #2b6cff 0%, #00e0ff 100%);
   color: white;
   border: none;
   padding: 14px 32px;
@@ -1145,11 +1147,12 @@ button.home:hover {
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(0, 224, 255, 0.4), 0 0 36px rgba(43, 108, 255, 0.3);
 }
 
 .leaderboard-view-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(32, 178, 170, 0.5);
+  box-shadow: 0 0 26px rgba(0, 224, 255, 0.6), 0 0 52px rgba(43, 108, 255, 0.4);
 }
 
 /* ---------- Responsive Updates ---------- */
