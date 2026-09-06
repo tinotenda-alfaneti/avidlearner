@@ -9,4 +9,9 @@ service:
   type: ClusterIP
   port: 80
 
+# Ingress host is "<release-name>.<domain>" for each domain listed here.
+domains:
+  - atarnet.org
+  - alfaneti.uk
+
 resources: {}
